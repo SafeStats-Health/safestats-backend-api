@@ -1,20 +1,24 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
+const startDatabase = require('./configs/database/startDatabase');
 const app = express();
 
-// Permite acesso externo
+// Starting database
+startDatabase();
+
+// Allowing external connections
 app.use(cors());
 
-// Desativa o X-Powered-By: Express
+// Disabling the X-Powered-By: Express
 app.disable('x-powered-by');
 
-// Criamos uma rota raiz com o texto Hello World!
+// Base rout
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
-// Passamos a porta onde o servidor ficará ouvindo
+// Application listening port
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Listening on port: ${process.env.PORT}`);
 });

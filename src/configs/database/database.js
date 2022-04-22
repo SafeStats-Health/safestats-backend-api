@@ -1,13 +1,13 @@
 const Sequelize = require('sequelize');
-const credentials = require('./credentials.json');
+const credentials = require('./credentials');
 
 const sequelize = new Sequelize(
-  `postgres://${credentials['username']}
-  :${credentials['password']}
-  @${credentials['host']}
-  :${credentials['port']}
-  /${credentials['database']}`,
+  credentials['development']['database'],
+  credentials['development']['username'],
+  credentials['development']['password'],
   {
+    host: credentials['development']['host'],
+    port: credentials['development']['port'],
     dialect: 'postgres',
   }
 );
