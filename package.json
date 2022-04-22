@@ -1,0 +1,47 @@
+{
+  "name": "safestats-backend-api",
+  "version": "1.0.0",
+  "description": "SafeStats Backend API",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --exec sucrase-node ./src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SafeStats-Health/safestats-backend-api.git"
+  },
+  "author": "SafeStats Health Organization",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SafeStats-Health/safestats-backend-api/issues"
+  },
+  "homepage": "https://github.com/SafeStats-Health/safestats-backend-api#readme",
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "debug": "^4.3.4",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "express-openapi-validator": "^4.13.7",
+    "jwt-simple": "^0.5.6",
+    "morgan": "^1.10.0",
+    "passport": "^0.5.2",
+    "passport-anonymous": "^1.0.1",
+    "passport-jwt": "^4.0.0",
+    "sequelize": "^6.19.0",
+    "swagger-jsdoc": "^6.2.1",
+    "swagger-ui-express": "^4.3.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.20.0",
+    "@typescript-eslint/parser": "^5.20.0",
+    "eslint": "^8.13.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "nodemon": "^2.0.15",
+    "pg": "^8.7.3",
+    "prettier": "^2.6.2",
+    "sucrase": "^3.21.0"
+  }
+}
