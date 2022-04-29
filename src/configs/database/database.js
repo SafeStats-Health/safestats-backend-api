@@ -2,13 +2,13 @@ const Sequelize = require('sequelize');
 const credentials = require('./credentials');
 
 const sequelize = new Sequelize(
-  credentials['development']['database'],
-  credentials['development']['username'],
-  credentials['development']['password'],
+  credentials['university']['database'],
+  credentials['university']['username'],
+  credentials['university']['password'],
   {
-    host: credentials['development']['host'],
-    port: credentials['development']['port'],
-    dialect: 'postgres',
+    host: credentials['university']['host'],
+    port: credentials['university']['port'],
+    dialect: credentials['university']['dialect'],
   }
 );
 
