@@ -1,7 +1,7 @@
 // Start the database
 async function startDatabase() {
   const database = require('./database');
-  const User = require('../../models/User');
+  const User = require('../../User/model');
 
   try {
     await database.sync();
