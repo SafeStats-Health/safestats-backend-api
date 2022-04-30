@@ -32,7 +32,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:3000/api',
+        url: 'http://localhost:8000/api',
         description: 'SafeStats Server',
       },
     ],
@@ -48,7 +48,7 @@ app.use(
   OpenApiValidator.middleware({
     apiSpec: swaggerDocs,
     unknownFormats: [],
-    operationHandlers: __dirname + '/routes',
+    operationHandlers: __dirname + '/routes/handlers',
   })
 );
 
