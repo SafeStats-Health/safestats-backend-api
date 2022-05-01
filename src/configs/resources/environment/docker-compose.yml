@@ -1,0 +1,16 @@
+version: '3.1'
+
+services:
+  postgresql:
+    hostname: postgresql
+    image: postgres
+    restart: always
+    network_mode: bridge
+    environment:
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=safestats
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/postgresql/data:/var/lib/postgresql/data

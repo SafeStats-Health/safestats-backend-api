@@ -3,16 +3,16 @@ const User = require('../../User/model');
 
 /**
  * @openapi
- * /users:
+ * /users/register:
  *   post:
  *     summary: Inserts an user in the database.
  *     tags:
  *       - "users"
- *     operationId: users_insert
+ *     operationId: users_register
  *     x-eov-operation-handler: user-handler
  *
  *     requestBody:
- *       description: "User data to be included"
+ *       description: "User data to be included."
  *       content:
  *         "application/json":
  *           schema:
@@ -43,7 +43,7 @@ const User = require('../../User/model');
  *       '400':
  *         description: "Invalid data"
  */
-module.exports.users_insert = [
+module.exports.users_register = [
   async function (req, res) {
     const user = req.body;
 
@@ -82,3 +82,73 @@ module.exports.users_insert = [
     return res.status(201).json({ message: 'User created.' });
   },
 ];
+
+/**
+ * @openapi
+ * /users/login:
+ *   post:
+ *     summary: Login an user.
+ *     tags:
+ *       - "users"
+ *     operationId: users_login
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "User credentials."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "jose@email.com"
+ *               password:
+ *                 type: string
+ *                 example: "123456"
+ *
+ *     responses:
+ *       '200':
+ *         description: "User logged in"
+ *       '400':
+ *         description: "Invalid credentials"
+ */
+module.exports.users_login = [
+  async function (req, res) {
+    const { email, password } = req.body;
+
+    // Checking if user exists
+    const user = await User.findOne({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      return res.status(400).send({
+        error: 'Invalid credentials.',
+      });
+    }
+
+    // Checking if password is correct
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordCorrect) {
+      return res.status(400).send({
+        error: 'Invalid credentials.',
+      });
+    }
+
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  }
+]

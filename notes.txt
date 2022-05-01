@@ -1,3 +1,2 @@
 # Creating a database with docker
--> docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres
-
+-> docker compose -f .\src\configs\resources\environment\docker-compose.yml up -d
