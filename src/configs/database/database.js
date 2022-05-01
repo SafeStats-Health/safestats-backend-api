@@ -11,6 +11,7 @@ if (env === 'LOCAL') {
   environment = "university";
 }
 
+var database = {};
 
 const sequelize = new Sequelize(
   credentials[environment]['database'],
@@ -26,4 +27,7 @@ const sequelize = new Sequelize(
   }
 );
 
-module.exports = sequelize;
+database.sequelize = sequelize;
+database.Sequelize = Sequelize;
+
+module.exports = database;

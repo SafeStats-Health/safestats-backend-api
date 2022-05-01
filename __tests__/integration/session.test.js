@@ -1,16 +1,36 @@
-const { User } = require('../../src/models/User');
+const supertest = require("supertest");
+const app = require("../../src/app");
+const request = supertest(app);
+
+const { faker } = require("@faker-js/faker");
+const bcrypt = require('bcrypt');
+
+const truncate = require("../utils/truncate");
+const User = require("../../src/models/User");
+
 
 describe('Authentication', () => {
-  it('should receive JWT token when authenticated with valid credentials', async () => {
-    await User.create({
-      name: "José Pereira da Silva",
-      email: "jose@email.com",
-      password: "123456",
-      confirmPassword: "123456"
+  beforeEach(async () => {
+    await truncate();
+  });
+
+  it('should authenticate with valid credentials', async () => {
+    const salt = await bcrypt.genSalt(10);
+    const password = "123456";
+
+    const user = await User.create({
+      name: faker.name.findName(),
+      email: faker.internet.email(),
+      password: await bcrypt.hash(password, salt),
     });
 
-    console.log(user);
+    const response = await request.post('/api/users/login').send({
+      email: user.email,
+      password: password
+    });
 
-    expect(user.email).toBe("jose@email.com");
+    console.log(response.body);
+
+    expect(response.status).toBe(200);
   });
 });

@@ -11,7 +11,6 @@ const passport = require('passport');
 //const jwt = require('');
 
 const app = express();
-const startDatabase = require('./configs/database/startDatabase');
 
 app.use(passport.initialize());
 app.use(logger('dev'));
@@ -51,8 +50,5 @@ app.use(
     operationHandlers: __dirname + '/routes',
   })
 );
-
-// Initialize the database and create the tables
-startDatabase();
 
 module.exports = app;
