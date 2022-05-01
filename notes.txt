@@ -1,2 +1,11 @@
 # Creating a database with docker
 -> docker compose -f .\src\configs\resources\environment\docker-compose.yml up -d
+
+# Para instalar yarn
+-> npm install -g yarn
+
+# Para rodar os testes
+-> yarn test
+
+# Para instalar as dependencias
+-> yarn

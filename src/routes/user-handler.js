@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const User = require('../../User/model');
+const User = require('../models/user');
 
 /**
  * @openapi

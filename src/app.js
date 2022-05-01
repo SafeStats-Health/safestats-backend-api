@@ -48,7 +48,7 @@ app.use(
   OpenApiValidator.middleware({
     apiSpec: swaggerDocs,
     unknownFormats: [],
-    operationHandlers: __dirname + '/routes/handlers',
+    operationHandlers: __dirname + '/routes',
   })
 );
 

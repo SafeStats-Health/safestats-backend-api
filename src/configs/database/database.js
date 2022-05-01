@@ -20,6 +20,9 @@ const sequelize = new Sequelize(
     host: credentials[environment]['host'],
     port: credentials[environment]['port'],
     dialect: credentials[environment]['dialect'],
+    storage: './__tests__/database.sqlite',
+    loggin: credentials[environment]['logging'],
+    define: credentials[environment]['define'],
   }
 );
 
