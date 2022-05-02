@@ -1,4 +1,6 @@
-const truncate = require("../utils/truncate");
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
+const truncate = require('../utils/truncate');
 const User = require('../../src/models/User');
 
 describe('User', () => {
@@ -6,7 +8,5 @@ describe('User', () => {
     await truncate();
   });
 
-  it('should encrypt user password', async () => {
-
-  });
+  it('should encrypt user password', async () => {});
 });

@@ -1,14 +1,18 @@
 const Sequelize = require('sequelize');
 const credentials = require('./credentials');
-require('dotenv').config();
+require('dotenv').config({
+  path: process.env.NODE_ENV === 'TEST' ? '.env.test' : '.env',
+});
 
 const env = process.env.ENVIRONMENT;
 var environment;
 
 if (env === 'LOCAL') {
-  environment = "development";
+  environment = 'development';
 } else if (env === 'UNIVERSITY') {
-  environment = "university";
+  environment = 'university';
+} else if (env === 'TEST') {
+  environment = 'test';
 }
 
 var database = {};

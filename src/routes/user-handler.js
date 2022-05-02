@@ -71,13 +71,8 @@ module.exports.users_register = [
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
 
-    try {
-      await User.create(user);
-    } catch (error) {
-      return res.status(500).send({
-        error: error,
-      });
-    }
+    // Creating user
+    await User.create(user);
 
     return res.status(201).json({ message: 'User created.' });
   },
@@ -129,7 +124,7 @@ module.exports.users_login = [
     });
 
     if (!user) {
-      return res.status(400).send({
+      return res.status(401).send({
         error: 'Invalid credentials.',
       });
     }
@@ -138,7 +133,7 @@ module.exports.users_login = [
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (!isPasswordCorrect) {
-      return res.status(400).send({
+      return res.status(401).send({
         error: 'Invalid credentials.',
       });
     }
@@ -147,8 +142,8 @@ module.exports.users_login = [
       user: {
         id: user.id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
-  }
-]
+  },
+];

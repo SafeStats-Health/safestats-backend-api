@@ -1,6 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const startDatabase = require('./configs/database/startDatabase');
 
 //OpenAPI configuration
 const swaggerJsDoc = require('swagger-jsdoc');
@@ -50,5 +51,10 @@ app.use(
     operationHandlers: __dirname + '/routes',
   })
 );
+
+/**
+ * Starts the database
+ */
+startDatabase();
 
 module.exports = app;

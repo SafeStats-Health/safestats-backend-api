@@ -6,7 +6,6 @@
 const app = require('../app');
 const debug = require('debug')('nodesrv:server');
 const http = require('http');
-const startDatabase = require('../configs/database/startDatabase');
 
 /**
  * Get port from environment and store in Express.
@@ -76,11 +75,6 @@ function onError(error) {
 }
 
 /**
- * Starts the database
-*/
-startDatabase();
-
-/**
  * Event listener for HTTP server "listening" event.
  */
 
@@ -90,3 +84,5 @@ function onListening() {
   debug('Listening on ' + bind);
   console.log('Listening on ' + bind);
 }
+
+module.exports = server;
