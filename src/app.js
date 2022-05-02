@@ -1,6 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const startDatabase = require('./configs/database/startDatabase');
 
 //OpenAPI configuration
 const swaggerJsDoc = require('swagger-jsdoc');
@@ -11,7 +12,6 @@ const passport = require('passport');
 //const jwt = require('');
 
 const app = express();
-const startDatabase = require('./configs/database/startDatabase');
 
 app.use(passport.initialize());
 app.use(logger('dev'));
@@ -48,11 +48,13 @@ app.use(
   OpenApiValidator.middleware({
     apiSpec: swaggerDocs,
     unknownFormats: [],
-    operationHandlers: __dirname + '/routes/handlers',
+    operationHandlers: __dirname + '/routes',
   })
 );
 
-// Initialize the database and create the tables
+/**
+ * Starts the database
+ */
 startDatabase();
 
 module.exports = app;

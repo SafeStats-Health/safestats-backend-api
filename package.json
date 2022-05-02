@@ -4,8 +4,8 @@
   "description": "SafeStats Backend API",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec sucrase-node ./src/bin/www",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon --exec sucrase-node ./src/bin/www --ignore __tests__",
+    "test": "NODE_ENV=test jest"
   },
   "repository": {
     "type": "git",
@@ -36,16 +36,22 @@
     "swagger-ui-express": "^4.3.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^6.2.0",
     "@typescript-eslint/eslint-plugin": "^5.20.0",
     "@typescript-eslint/parser": "^5.20.0",
     "eslint": "^8.13.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.0.0",
+    "factory-girl": "^5.0.4",
+    "jest": "^28.0.3",
     "nodemon": "^2.0.15",
     "pg": "^8.7.3",
     "prettier": "^2.6.2",
     "prettier-plugin-organize-imports": "^2.3.4",
     "sequelize-cli": "^6.4.1",
-    "sucrase": "^3.21.0"
+    "sqlite3": "^5.0.6",
+    "sucrase": "^3.21.0",
+    "supertest": "^6.2.3",
+    "typescript": "^4.6.4"
   }
 }
