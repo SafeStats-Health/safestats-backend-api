@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec sucrase-node ./src/bin/www --ignore __tests__",
-    "test": "NODE_ENV=test jest"
+    "test": "NODE_ENV=TEST jest --coverage"
   },
   "repository": {
     "type": "git",
