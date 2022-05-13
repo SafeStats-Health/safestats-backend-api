@@ -7,9 +7,13 @@ const { faker } = require('@faker-js/faker');
 const bcrypt = require('bcrypt');
 
 const truncate = require('../utils/truncate');
+const database = require('../../src/configs/database/database').sequelize;
 const User = require('../../src/models/User');
 
 describe('Authentication', () => {
+  beforeAll(async () => {
+    await database.sync({ force: true });
+  });
   beforeEach(async () => {
     await truncate();
   });

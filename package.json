@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec sucrase-node ./src/bin/www --ignore __tests__",
-    "test": "NODE_ENV=test jest"
+    "test": "NODE_ENV=TEST jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -33,7 +33,8 @@
     "passport-jwt": "^4.0.0",
     "sequelize": "^6.19.0",
     "swagger-jsdoc": "^6.2.1",
-    "swagger-ui-express": "^4.3.0"
+    "swagger-ui-express": "^4.3.0",
+    "win-node-env": "^0.6.1"
   },
   "devDependencies": {
     "@faker-js/faker": "^6.2.0",

@@ -1,6 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const cors = require('cors');
 const startDatabase = require('./configs/database/startDatabase');
 
 //OpenAPI configuration
@@ -18,6 +19,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(cors());
 
 // passport.use('jwt', jwt.strategy.jwt);
 // passport.use('none', jwt.stratey.none);
