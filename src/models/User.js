@@ -29,6 +29,10 @@ const User = database.sequelize.define('user', {
     type: database.Sequelize.DATE,
     allowNull: false,
   },
+  deletedAt: {
+    type: database.Sequelize.DATE,
+    allowNull: true,
+  },
 });
 
 module.exports = User;

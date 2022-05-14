@@ -58,6 +58,7 @@ module.exports.users_register = [
     const userExists = await User.findOne({
       where: {
         email: user.email,
+        deleted_at: null,
       },
     });
 
@@ -145,5 +146,53 @@ module.exports.users_login = [
         email: user.email,
       },
     });
+  },
+];
+
+/**
+ * @openapi
+ * /users/delete-user/{user_id}:
+ *   delete:
+ *     summary: Mark an user deletedAt as new Date
+ *     tags:
+ *       - "users"
+ *     operationId: users_delete
+ *     x-eov-operation-handler: user-handler
+ * 
+ *     parameters:
+ *      - in: path
+ *        name: user_id
+ *        schema:
+ *          type: integer
+ *        required: true
+ *        description: Numeric ID of the user to delete.
+ 
+ *     responses:
+ *       '201':
+ *         description: "User created"
+ *       '400':
+ *         description: "Invalid data"
+ */
+module.exports.users_delete = [
+  async function (req, res) {
+    const { user_id } = req.params;
+    const user = await User.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    if (!user) {
+      return res.status(404).send({
+        error: 'User not found.',
+      });
+    } else {
+      await User.update(
+        {
+          deleted_at: new Date(),
+        },
+        { where: { id: user_id } }
+      );
+      return res.status(200).json({ message: 'User deleted.' });
+    }
   },
 ];
