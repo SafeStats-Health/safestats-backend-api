@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
+const EmailValidator = require('email-validator');
+const sendMail = require('../services/email/email');
 
 /**
  * @openapi
@@ -47,6 +49,12 @@ module.exports.users_register = [
   async function (req, res) {
     const user = req.body;
 
+    if (!EmailValidator.validate(user.email)) {
+      return res.status(400).send({
+        error: 'Invalid e-mail.',
+      });
+    }
+
     // Validating password and confirmation
     if (user.password !== user.confirmPassword) {
       return res.status(400).send({
@@ -73,6 +81,15 @@ module.exports.users_register = [
 
     // Creating user
     await User.create(user);
+
+    // Sending confirmation email to the user
+    sendMail(
+      '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
+      await user.email,
+      'Seja bem-vindo ao SafeStats 🥰',
+      '',
+      '<b>Seja bem-vindo ao SafeStats!</b> <br/> Ficamos muito felizes com sua presença!'
+    );
 
     return res.status(201).json({ message: 'User created.' });
   },

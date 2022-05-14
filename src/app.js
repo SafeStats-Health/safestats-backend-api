@@ -49,6 +49,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use(
   OpenApiValidator.middleware({
     apiSpec: swaggerDocs,
+    validateRequests: true,
     unknownFormats: [],
     operationHandlers: __dirname + '/routes',
   })
