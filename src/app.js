@@ -1,3 +1,4 @@
+require('express-async-errors');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
@@ -39,7 +40,11 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: [__dirname + '/routes/**/*.yaml', __dirname + '/**/*.js'],
+  apis: [
+    __dirname + '/routes/**/*.yaml',
+    __dirname + '/**/*.js',
+    __dirname + '/**/*.ts',
+  ],
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
@@ -55,9 +60,14 @@ app.use(
   })
 );
 
-/**
- * Starts the database
- */
-startDatabase();
+// Generic error handler
+app.use((erro, req, res) => {
+  res.status(500).send({ error: 'Ops, algo deu errado' });
+});
+
+// Starts the database
+(async () => {
+  await startDatabase();
+})();
 
 module.exports = app;
