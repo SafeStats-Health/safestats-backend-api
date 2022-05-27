@@ -3,10 +3,12 @@ require('dotenv').config({ path: '.env' });
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const EmailValidator = require('email-validator');
+const moment = require('moment');
 
 const User = require('../models/user');
 const Token = require('../models/token');
 const sendMail = require('../services/email/email');
+const { send } = require('process');
 
 const ENCRYPT_SALT = parseInt(process.env.ENCRYPT_SALT);
 const clientURL = process.env.CLIENT_URL;
@@ -234,7 +236,7 @@ module.exports.users_request_password_recover = [
       await Token.update(
         {
           token: resetToken,
-          createdAt: new Date(),
+          createdAt: moment(),
         },
         {
           where: {
@@ -243,7 +245,11 @@ module.exports.users_request_password_recover = [
         }
       );
     } else {
-      await Token.create({ user_id: user.id, token: resetToken });
+      await Token.create({
+        user_id: user.id,
+        token: resetToken,
+        expiration: 60 * 60,
+      });
     }
 
     // Send a link to the user to recover his password
@@ -268,31 +274,104 @@ module.exports.users_request_password_recover = [
 
 /**
  * @openapi
- * /users/recover-user-password:
+ * /users/update-password:
  *   post:
- *     summary: Reset user password.
+ *     summary: Updates user password.
  *     tags:
  *       - "users"
- *     operationId: users_request_password_recover
+ *     operationId: users_update_password
  *     x-eov-operation-handler: user-handler
  *
  *     requestBody:
- *       description: "User email."
+ *       description: "Updates user password."
  *       content:
  *         "application/json":
  *           schema:
  *             type: object
  *             required:
- *               - email
+ *               - token
+ *               - userId
+ *               - newPassword
+ *               - newPasswordConfirmation
  *
  *             properties:
- *               email:
+ *               token:
  *                 type: string
- *                 example: "jose@email.com"
- *
+ *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
+ *               userId:
+ *                 type: string
+ *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
+ *               newPassword:
+ *                 type: string
+ *                 example: "Josezinho@123"
+ *               newPasswordConfirmation:
+ *                 type: string
+ *                 example: "Josezinho@123"
  *     responses:
  *       '200':
- *         description: "Recovery link sent"
+ *         description: "Password updated"
+ *       '400':
+ *         description: "Invalid token"
  *       '404':
  *         description: "User not found"
  */
+module.exports.users_update_password = [
+  async function (req, res) {
+    const {
+      token: userToken,
+      userId,
+      newPassword,
+      newPasswordConfirmation,
+    } = req.body;
+
+    if (!(userToken || userId)) {
+      return res.status(400).send({
+        error: 'Invalid token',
+      });
+    }
+
+    if (newPassword != newPasswordConfirmation) {
+      return send
+        .status(400)
+        .send({ error: 'Password and confirmation must be equal' });
+    }
+
+    const token = await Token.findOne({
+      where: {
+        user_id: userId,
+        token: userToken,
+      },
+    });
+
+    const currentDateTime = moment();
+    const tokenExpirationDateTime = moment(token.createdAt).add(
+      token.expiration,
+      'seconds'
+    );
+
+    if (tokenExpirationDateTime < currentDateTime) {
+      return res.status(400).send({
+        error: 'Expired token',
+      });
+    }
+
+    // Encrypting new password
+    const salt = await bcrypt.genSalt(ENCRYPT_SALT);
+    const newUserPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.update(
+      {
+        password: newUserPassword,
+      },
+      {
+        where: {
+          id: userId,
+        },
+      }
+    );
+
+    return res.status(200).send({
+      message: 'Password updated',
+    });
+  },
+];

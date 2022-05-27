@@ -14,7 +14,7 @@ const Token = database.sequelize.define(
     },
     expiration: {
       type: database.Sequelize.INTEGER,
-      defaultValue: 60 * 60 * 60,
+      defaultValue: 60 * 60,
       allowNull: false,
     },
     createdAt: {
