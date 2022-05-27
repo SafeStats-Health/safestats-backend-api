@@ -1,5 +1,17 @@
+require('dotenv').config({ path: '.env' });
+
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
+const EmailValidator = require('email-validator');
+const moment = require('moment');
+
 const User = require('../models/user');
+const Token = require('../models/token');
+const sendMail = require('../services/email/email');
+const { send } = require('process');
+
+const ENCRYPT_SALT = parseInt(process.env.ENCRYPT_SALT);
+const clientURL = process.env.CLIENT_URL;
 
 /**
  * @openapi
@@ -47,10 +59,16 @@ module.exports.users_register = [
   async function (req, res) {
     const user = req.body;
 
+    if (!EmailValidator.validate(user.email)) {
+      return res.status(400).send({
+        error: 'Invalid e-mail',
+      });
+    }
+
     // Validating password and confirmation
     if (user.password !== user.confirmPassword) {
       return res.status(400).send({
-        error: 'Password and confirmation must be equal.',
+        error: 'Password and confirmation must be equal',
       });
     }
 
@@ -63,18 +81,27 @@ module.exports.users_register = [
 
     if (userExists) {
       return res.status(400).send({
-        error: 'User already exists.',
+        error: 'User already exists',
       });
     }
 
     // Encrypting password
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(ENCRYPT_SALT);
     user.password = await bcrypt.hash(user.password, salt);
 
     // Creating user
     await User.create(user);
 
-    return res.status(201).json({ message: 'User created.' });
+    // Sending confirmation email to the user
+    sendMail(
+      '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
+      await user.email,
+      'Seja bem-vindo ao SafeStats 🥰',
+      '',
+      '<b>Seja bem-vindo ao SafeStats!</b> <br/> Ficamos muito felizes com sua presença!'
+    );
+
+    return res.status(201).send({ message: 'User created' });
   },
 ];
 
@@ -82,7 +109,7 @@ module.exports.users_register = [
  * @openapi
  * /users/login:
  *   post:
- *     summary: Login an user.
+ *     summary: Login a user.
  *     tags:
  *       - "users"
  *     operationId: users_login
@@ -109,7 +136,7 @@ module.exports.users_register = [
  *     responses:
  *       '200':
  *         description: "User logged in"
- *       '400':
+ *       '401':
  *         description: "Invalid credentials"
  */
 module.exports.users_login = [
@@ -125,7 +152,7 @@ module.exports.users_login = [
 
     if (!user) {
       return res.status(401).send({
-        error: 'Invalid credentials.',
+        error: 'Invalid credentials',
       });
     }
 
@@ -134,7 +161,7 @@ module.exports.users_login = [
 
     if (!isPasswordCorrect) {
       return res.status(401).send({
-        error: 'Invalid credentials.',
+        error: 'Invalid credentials',
       });
     }
 
@@ -144,6 +171,207 @@ module.exports.users_login = [
         name: user.name,
         email: user.email,
       },
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/request-password-recover:
+ *   post:
+ *     summary: Request a user password recover.
+ *     tags:
+ *       - "users"
+ *     operationId: users_request_password_recover
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "User email."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "jose@email.com"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Recovery link sent"
+ *       '404':
+ *         description: "User not found"
+ */
+module.exports.users_request_password_recover = [
+  async function (req, res) {
+    const { email } = req.body;
+
+    // Checking if user email exists
+    const user = await User.findOne({
+      where: {
+        email,
+      },
+    });
+
+    // Returning error if email doesn't exist
+    if (!user) {
+      return res.status(404).send({
+        error: 'User not found',
+      });
+    }
+
+    // Generating a recovery token
+    const token = await Token.findOne({
+      where: {
+        user_id: user.id,
+      },
+    });
+
+    let resetToken = crypto.randomBytes(32).toString('hex');
+
+    if (token) {
+      await Token.update(
+        {
+          token: resetToken,
+          createdAt: moment(),
+        },
+        {
+          where: {
+            user_id: user.id,
+          },
+        }
+      );
+    } else {
+      await Token.create({
+        user_id: user.id,
+        token: resetToken,
+        expiration: 60 * 60,
+      });
+    }
+
+    // Send a link to the user to recover his password
+    const link = `${clientURL}/passwordReset?token=${resetToken}&user_id=${user.id}`;
+
+    await sendMail(
+      '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
+      await user.email,
+      'Recuperação de senha 🔐',
+      '',
+      `
+      <b>Olá ${user.name}, aqui está seu link para recuperação de senha!</b><br/>
+      ${link}
+      `
+    );
+
+    return res.status(200).send({
+      message: 'Recovery link sent',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-password:
+ *   post:
+ *     summary: Updates user password.
+ *     tags:
+ *       - "users"
+ *     operationId: users_update_password
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user password."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - userId
+ *               - newPassword
+ *               - newPasswordConfirmation
+ *
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
+ *               userId:
+ *                 type: string
+ *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
+ *               newPassword:
+ *                 type: string
+ *                 example: "Josezinho@123"
+ *               newPasswordConfirmation:
+ *                 type: string
+ *                 example: "Josezinho@123"
+ *     responses:
+ *       '200':
+ *         description: "Password updated"
+ *       '400':
+ *         description: "Invalid token"
+ *       '404':
+ *         description: "User not found"
+ */
+module.exports.users_update_password = [
+  async function (req, res) {
+    const {
+      token: userToken,
+      userId,
+      newPassword,
+      newPasswordConfirmation,
+    } = req.body;
+
+    if (!(userToken || userId)) {
+      return res.status(400).send({
+        error: 'Invalid token',
+      });
+    }
+
+    if (newPassword != newPasswordConfirmation) {
+      return send
+        .status(400)
+        .send({ error: 'Password and confirmation must be equal' });
+    }
+
+    const token = await Token.findOne({
+      where: {
+        user_id: userId,
+        token: userToken,
+      },
+    });
+
+    const currentDateTime = moment();
+    const tokenExpirationDateTime = moment(token.createdAt).add(
+      token.expiration,
+      'seconds'
+    );
+
+    if (tokenExpirationDateTime < currentDateTime) {
+      return res.status(400).send({
+        error: 'Expired token',
+      });
+    }
+
+    // Encrypting new password
+    const salt = await bcrypt.genSalt(ENCRYPT_SALT);
+    const newUserPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.update(
+      {
+        password: newUserPassword,
+      },
+      {
+        where: {
+          id: userId,
+        },
+      }
+    );
+
+    return res.status(200).send({
+      message: 'Password updated',
     });
   },
 ];
