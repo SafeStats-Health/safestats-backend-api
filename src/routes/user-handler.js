@@ -8,7 +8,6 @@ const moment = require('moment');
 const User = require('../models/user');
 const Token = require('../models/token');
 const sendMail = require('../services/email/email');
-const { send } = require('process');
 
 const ENCRYPT_SALT = parseInt(process.env.ENCRYPT_SALT);
 const clientURL = process.env.CLIENT_URL;
@@ -95,7 +94,7 @@ module.exports.users_register = [
     // Sending confirmation email to the user
     sendMail(
       '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
-      await user.email,
+      user.email,
       'Seja bem-vindo ao SafeStats 🥰',
       '',
       '<b>Seja bem-vindo ao SafeStats!</b> <br/> Ficamos muito felizes com sua presença!'
@@ -257,7 +256,7 @@ module.exports.users_request_password_recover = [
 
     await sendMail(
       '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
-      await user.email,
+      user.email,
       'Recuperação de senha 🔐',
       '',
       `
@@ -331,7 +330,7 @@ module.exports.users_update_password = [
     }
 
     if (newPassword != newPasswordConfirmation) {
-      return send
+      return res
         .status(400)
         .send({ error: 'Password and confirmation must be equal' });
     }
@@ -342,6 +341,10 @@ module.exports.users_update_password = [
         token: userToken,
       },
     });
+
+    if (!token) {
+      return res.status(404).send({ error: 'Token not found' });
+    }
 
     const currentDateTime = moment();
     const tokenExpirationDateTime = moment(token.createdAt).add(
@@ -355,7 +358,6 @@ module.exports.users_update_password = [
       });
     }
 
-    // Encrypting new password
     const salt = await bcrypt.genSalt(ENCRYPT_SALT);
     const newUserPassword = await bcrypt.hash(newPassword, salt);
 
@@ -369,6 +371,29 @@ module.exports.users_update_password = [
         },
       }
     );
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    sendMail(
+      '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
+      user.email,
+      'Sua senha foi alterada 🔐',
+      '',
+      `
+      <b>Olá ${user.name}, sua senha foi alterada!</b><br/>
+      <b>Caso não reconheça essa alteração, entre em contato conosco!</b>
+      `
+    );
+
+    await Token.destroy({
+      where: {
+        user_id: token.user_id,
+      },
+    });
 
     return res.status(200).send({
       message: 'Password updated',
