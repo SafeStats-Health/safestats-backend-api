@@ -177,9 +177,9 @@ module.exports.users_login = [
 
 /**
  * @openapi
- * /users/delete-user/{user_id}:
- *   delete:
- *     summary: Mark an user deletedAt as new Date
+ * /users/delete-user:
+ *   post:
+ *     summary: Soft delete, marks user's deletedAt with current date.
  *     tags:
  *       - "users"
  *     operationId: users_delete
@@ -224,6 +224,7 @@ module.exports.users_delete = [
 ];
 
 /**
+ * @openapi
  * /users/request-password-recover:
  *   post:
  *     summary: Request a user password recover.
