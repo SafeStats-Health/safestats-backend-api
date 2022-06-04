@@ -4,12 +4,14 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const EmailValidator = require('email-validator');
 const moment = require('moment');
+const passport = require('passport');
 
 const User = require('../models/user');
 const Token = require('../models/token');
+const { createToken } = require('../services/jwt/jwt');
 const sendMail = require('../services/email/email');
 
-const ENCRYPT_SALT = parseInt(process.env.ENCRYPT_SALT);
+const ENCRYPT_SALT = parseInt(process.env.CRYPTO_KEY);
 const clientURL = process.env.CLIENT_URL;
 
 /**
@@ -18,7 +20,7 @@ const clientURL = process.env.CLIENT_URL;
  *   post:
  *     summary: Inserts an user in the database.
  *     tags:
- *       - "users"
+ *       - "Users"
  *     operationId: users_register
  *     x-eov-operation-handler: user-handler
  *
@@ -110,7 +112,7 @@ module.exports.users_register = [
  *   post:
  *     summary: Login a user.
  *     tags:
- *       - "users"
+ *       - "Users"
  *     operationId: users_login
  *     x-eov-operation-handler: user-handler
  *
@@ -164,12 +166,11 @@ module.exports.users_login = [
       });
     }
 
+    // Creating JWT code
+    const token = createToken(user);
+
     return res.status(200).json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
+      token: token,
     });
   },
 ];
@@ -180,7 +181,7 @@ module.exports.users_login = [
  *   post:
  *     summary: Request a user password recover.
  *     tags:
- *       - "users"
+ *       - "Users"
  *     operationId: users_request_password_recover
  *     x-eov-operation-handler: user-handler
  *
@@ -203,8 +204,12 @@ module.exports.users_login = [
  *         description: "Recovery link sent"
  *       '404':
  *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
  */
 module.exports.users_request_password_recover = [
+  passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
     const { email } = req.body;
 
@@ -277,7 +282,7 @@ module.exports.users_request_password_recover = [
  *   post:
  *     summary: Updates user password.
  *     tags:
- *       - "users"
+ *       - "Users"
  *     operationId: users_update_password
  *     x-eov-operation-handler: user-handler
  *
