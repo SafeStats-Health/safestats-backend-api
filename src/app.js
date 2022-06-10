@@ -11,7 +11,7 @@ const swaggerUi = require('swagger-ui-express');
 const OpenApiValidator = require('express-openapi-validator');
 
 const passport = require('passport');
-//const jwt = require('');
+const jwt = require('./services/jwt/jwt');
 
 const app = express();
 
@@ -22,8 +22,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors());
 
-// passport.use('jwt', jwt.strategy.jwt);
-// passport.use('none', jwt.stratey.none);
+passport.use('jwt', jwt.strategy.jwt);
+passport.use('none', jwt.strategy.none);
 
 const swaggerOptions = {
   swaggerDefinition: {
