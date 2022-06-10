@@ -4,7 +4,7 @@
   "description": "SafeStats Backend API",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec sucrase-node ./src/bin/www --ignore __tests__",
+    "start": "nodemon --exec sucrase-node ./src/bin/www --ignore __tests__",
     "test": "NODE_ENV=TEST jest --coverage"
   },
   "repository": {
@@ -15,6 +15,9 @@
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/SafeStats-Health/safestats-backend-api/issues"
+  },
+  "engines": {
+    "node": "14.x"
   },
   "homepage": "https://github.com/SafeStats-Health/safestats-backend-api#readme",
   "dependencies": {
@@ -37,8 +40,7 @@
     "passport-jwt": "^4.0.0",
     "sequelize": "^6.19.0",
     "swagger-jsdoc": "^6.2.1",
-    "swagger-ui-express": "^4.3.0",
-    "win-node-env": "^0.6.1"
+    "swagger-ui-express": "^4.3.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^6.2.0",

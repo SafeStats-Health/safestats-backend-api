@@ -5,19 +5,21 @@ const moment = require('moment');
 const { ExtractJwt, Strategy } = require('passport-jwt');
 const AnonymousStrategy = require('passport-anonymous');
 
-const SECRET = process.env.CRYPTO_KEY;
-const ISSUER = process.env.ISSUER;
-const TOKEN_DURATION = process.env.TOKEN_DURATION_IN_SECONDS;
+const {
+  CRYPTO_KEY: secret,
+  ISSUER: issuer,
+  TOKEN_DURATION: tokenDuration,
+} = process.env;
 
 const params = {
-  secretOrKey: SECRET,
+  secretOrKey: secret,
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
   ignoreExpiration: false,
-  issuer: ISSUER,
+  issuer: issuer,
 };
 
 module.exports.createToken = function (user) {
-  const exp = moment().add(TOKEN_DURATION, 'seconds');
+  const exp = moment().add(tokenDuration, 'seconds');
 
   const payload = {
     user: {
@@ -26,12 +28,12 @@ module.exports.createToken = function (user) {
       email: user.email,
       createdAt: user.createdAt,
     },
-    iss: ISSUER,
+    iss: issuer,
     iat: moment(),
     exp: exp,
   };
 
-  return jwt.encode(payload, SECRET);
+  return jwt.encode(payload, secret);
 };
 
 module.exports.strategy = {};

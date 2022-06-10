@@ -5,8 +5,8 @@ require('dotenv').config({
 const Sequelize = require('sequelize');
 const credentials = require('./credentials');
 
-const TIMEZONE = process.env.TIMEZONE;
-const env = process.env.ENVIRONMENT;
+const { TIMEZONE: timezone, ENVIRONMENT: env } = process.env;
+
 var environment;
 
 if (env === 'LOCAL') {
@@ -30,7 +30,7 @@ const sequelize = new Sequelize(
     storage: credentials[environment]['storage'] || ':memory:',
     loggin: credentials[environment]['logging'],
     define: credentials[environment]['define'],
-    timezone: TIMEZONE,
+    timezone: timezone,
   }
 );
 

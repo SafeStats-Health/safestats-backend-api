@@ -10,7 +10,7 @@ const truncate = require('../utils/truncate');
 const database = require('../../src/configs/database/database').sequelize;
 const User = require('../../src/models/User');
 
-const ENCRYPT_SALT = parseInt(process.env.ENCRYPT_SALT);
+const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
 
 describe('Authentication', () => {
   beforeAll(async () => {
@@ -21,7 +21,7 @@ describe('Authentication', () => {
   });
 
   it('should authenticate with valid credentials', async () => {
-    const salt = await bcrypt.genSalt(ENCRYPT_SALT);
+    const salt = await bcrypt.genSalt(encryptSalt);
     const password = '123456';
 
     const user = await User.create({
@@ -48,7 +48,7 @@ describe('Authentication', () => {
   });
 
   it('should not authenticate if the password is invalid', async () => {
-    const salt = await bcrypt.genSalt(ENCRYPT_SALT);
+    const salt = await bcrypt.genSalt(encryptSalt);
     const password = '123456';
 
     const user = await User.create({

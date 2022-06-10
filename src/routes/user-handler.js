@@ -11,8 +11,8 @@ const Token = require('../models/token');
 const { createToken } = require('../services/jwt/jwt');
 const sendMail = require('../services/email/email');
 
-const ENCRYPT_SALT = parseInt(process.env.CRYPTO_KEY);
-const clientURL = process.env.CLIENT_URL;
+const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
+const { CLIENT_URL: clientURL } = process.env;
 
 /**
  * @openapi
@@ -88,7 +88,7 @@ module.exports.users_register = [
     }
 
     // Encrypting password
-    const salt = await bcrypt.genSalt(ENCRYPT_SALT);
+    const salt = await bcrypt.genSalt(encryptSalt);
     user.password = await bcrypt.hash(user.password, salt);
 
     // Creating user
@@ -182,7 +182,7 @@ module.exports.users_login = [
  *   post:
  *     summary: Soft delete, marks user's deletedAt with current date.
  *     tags:
- *       - "users"
+ *       - "Users"
  *     operationId: users_delete
  *     x-eov-operation-handler: user-handler
  * 
@@ -412,7 +412,7 @@ module.exports.users_update_password = [
       });
     }
 
-    const salt = await bcrypt.genSalt(ENCRYPT_SALT);
+    const salt = await bcrypt.genSalt(encryptSalt);
     const newUserPassword = await bcrypt.hash(newPassword, salt);
 
     await User.update(
