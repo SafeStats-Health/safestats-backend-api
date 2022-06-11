@@ -35,7 +35,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'https://morning-inlet-70804.herokuapp.com/api',
+        url: process.env.BACKEND_URL,
         description: 'SafeStats Server',
       },
     ],

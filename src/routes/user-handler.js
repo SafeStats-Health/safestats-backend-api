@@ -12,7 +12,7 @@ const { createToken } = require('../services/jwt/jwt');
 const sendMail = require('../services/email/email');
 
 const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
-const { CLIENT_URL: clientURL } = process.env;
+const { FRONT_URL: frontURL } = process.env;
 
 /**
  * @openapi
@@ -306,7 +306,7 @@ module.exports.users_request_password_recover = [
     }
 
     // Send a link to the user to recover his password
-    const link = `${clientURL}/passwordReset?token=${resetToken}&user_id=${user.id}`;
+    const link = `${frontURL}/passwordReset?token=${resetToken}&user_id=${user.id}`;
 
     await sendMail(
       '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
