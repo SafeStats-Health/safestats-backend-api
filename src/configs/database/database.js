@@ -40,7 +40,23 @@ if (env != 'PRODUCTION') {
     }
   );
 } else {
-  sequelize = new Sequelize(databaseUrl, {});
+  sequelize = new Sequelize(databaseUrl, {
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
+  });
+
+  sequelize
+    .authenticate()
+    .then(() => {
+      console.log('Connection has been established successfully.');
+    })
+    .catch((err) => {
+      console.error('Unable to connect to the database:', err);
+    });
 }
 
 database.sequelize = sequelize;
