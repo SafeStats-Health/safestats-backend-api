@@ -77,7 +77,6 @@ module.exports.users_register = [
     const userExists = await User.findOne({
       where: {
         email: user.email,
-        deleted_at: null,
       },
     });
 
