@@ -5,7 +5,11 @@ require('dotenv').config({
 const Sequelize = require('sequelize');
 const credentials = require('./credentials');
 
-const { TIMEZONE: timezone, ENVIRONMENT: env } = process.env;
+const {
+  TIMEZONE: timezone,
+  ENVIRONMENT: env,
+  DATABASE_URL: databaseUrl,
+} = process.env;
 
 var environment;
 
@@ -18,21 +22,26 @@ if (env === 'LOCAL') {
 }
 
 var database = {};
+var sequelize;
 
-const sequelize = new Sequelize(
-  credentials[environment]['database'],
-  credentials[environment]['username'],
-  credentials[environment]['password'],
-  {
-    host: credentials[environment]['host'],
-    port: credentials[environment]['port'],
-    dialect: credentials[environment]['dialect'],
-    storage: credentials[environment]['storage'] || ':memory:',
-    loggin: credentials[environment]['logging'],
-    define: credentials[environment]['define'],
-    timezone: timezone,
-  }
-);
+if (env != 'PRODUCTION') {
+  sequelize = new Sequelize(
+    credentials[environment]['database'],
+    credentials[environment]['username'],
+    credentials[environment]['password'],
+    {
+      host: credentials[environment]['host'],
+      port: credentials[environment]['port'],
+      dialect: credentials[environment]['dialect'],
+      storage: credentials[environment]['storage'] || ':memory:',
+      loggin: credentials[environment]['logging'],
+      define: credentials[environment]['define'],
+      timezone: timezone,
+    }
+  );
+} else {
+  sequelize = new Sequelize(databaseUrl, {});
+}
 
 database.sequelize = sequelize;
 database.Sequelize = Sequelize;
