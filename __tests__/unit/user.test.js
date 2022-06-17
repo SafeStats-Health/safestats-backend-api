@@ -2,7 +2,7 @@
 /* eslint-disable no-undef */
 const truncate = require('../utils/truncate');
 const database = require('../../src/configs/database/database').sequelize;
-const User = require('../../src/models/User');
+const User = require('../../src/models/user');
 
 describe('User', () => {
   beforeAll(async () => {

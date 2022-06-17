@@ -8,7 +8,7 @@ const bcrypt = require('bcrypt');
 
 const truncate = require('../utils/truncate');
 const database = require('../../src/configs/database/database').sequelize;
-const User = require('../../src/models/User');
+const User = require('../../src/models/user');
 
 const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
 

@@ -8,7 +8,7 @@ const { faker } = require('@faker-js/faker');
 
 const truncate = require('../utils/truncate');
 const database = require('../../src/configs/database/database').sequelize;
-const User = require('../../src/models/User');
+const User = require('../../src/models/user');
 
 describe('Registration', () => {
   beforeAll(async () => {

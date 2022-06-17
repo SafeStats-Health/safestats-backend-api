@@ -1,8 +1,8 @@
 // Start the database and create the tables
 async function startDatabase() {
   const database = require('./database').sequelize;
-  require('../../models/User');
-  require('../../models/Token');
+  require('../../models/user');
+  require('../../models/token');
 
   try {
     await database.sync();
