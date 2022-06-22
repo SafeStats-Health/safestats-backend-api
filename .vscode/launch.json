@@ -14,5 +14,3 @@
     }
   ]
 }
-
-// nodemon --exec sucrase-node ./src/bin/www --ignore __tests__
