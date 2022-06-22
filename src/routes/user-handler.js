@@ -198,19 +198,29 @@ module.exports.users_login = [
  *     operationId: users_delete
  *     x-eov-operation-handler: user-handler
  *
- *     parameters:
- *      - in: query
- *        name: user_id
- *        schema:
- *          type: string
- *        required: true
- *        description: Numeric ID of the user to delete.
+ *     requestBody:
+ *       description: "User credentials."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *               - passwordConfirmation
+ *
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 example: "123456"
+ *               passwordConfirmation:
+ *                 type: string
+ *                 example: "123456"
  *
  *     responses:
- *       '201':
- *         description: "User created"
+ *       '200':
+ *         description: "User deleted"
  *       '400':
- *         description: "Invalid data"
+ *         description: "Invalid credentials"
  *     security:
  *        - JWT: []
  *        - {}
@@ -218,15 +228,16 @@ module.exports.users_login = [
 module.exports.users_delete = [
   passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
-    const { user_id: userId } = req.query;
+    const { password, passwordConfirmation } = req.body;
     const { authorization } = req.headers;
 
     const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
 
-    // Validating UUID to avoid query error
-    if (!uuidValidate(userId) || decodedToken['user'].id != userId) {
+    // Validating password and confirmation password
+    if (password != passwordConfirmation) {
       return res.status(400).send({
-        error: 'Invalid user UUID',
+        error: 'Password and confirmation must be equal',
       });
     }
 
@@ -341,12 +352,12 @@ module.exports.users_request_password_recover = [
 
 /**
  * @openapi
- * /users/update-password:
+ * /users/update-password-token:
  *   post:
  *     summary: Updates user password.
  *     tags:
  *       - "Users"
- *     operationId: users_update_password
+ *     operationId: users_update_password_token
  *     x-eov-operation-handler: user-handler
  *
  *     requestBody:
@@ -382,7 +393,7 @@ module.exports.users_request_password_recover = [
  *       '404':
  *         description: "User not found"
  */
-module.exports.users_update_password = [
+module.exports.users_update_password_token = [
   async function (req, res) {
     const {
       token: userToken,
@@ -462,6 +473,84 @@ module.exports.users_update_password = [
         userId: token.user_id,
       },
     });
+
+    return res.status(200).send({
+      message: 'Password updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-password-authenticated:
+ *   post:
+ *     summary: Updates user password when authenticated.
+ *     tags:
+ *       - "Users"
+ *     operationId: users_update_password_authenticated
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Update user password when authenticated."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newPassword
+ *               - newPasswordConfirmation
+ *
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 example: "Josezinho@123"
+ *               newPasswordConfirmation:
+ *                 type: string
+ *                 example: "Josezinho@123"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Password updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid passwords"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_password_authenticated = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const { newPassword, newPasswordConfirmation } = req.body;
+
+    if (newPassword != newPasswordConfirmation) {
+      return res
+        .status(400)
+        .send({ error: 'Password and confirmation must be equal' });
+    }
+
+    const salt = await bcrypt.genSalt(encryptSalt);
+    const newUserPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = newUserPassword;
+    await user.save();
 
     return res.status(200).send({
       message: 'Password updated',
