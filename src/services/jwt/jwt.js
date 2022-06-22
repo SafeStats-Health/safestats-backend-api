@@ -24,7 +24,7 @@ module.exports.createToken = function (user) {
   const payload = {
     user: {
       id: user.id,
-      nome: user.name,
+      name: user.name,
       email: user.email,
       phone: user.phone,
       birthdate: user.birthdate,
