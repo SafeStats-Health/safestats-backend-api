@@ -84,9 +84,13 @@ module.exports.users_register = [
     });
 
     if (userExists) {
-      return res.status(400).send({
-        error: 'User already exists',
-      });
+      if (!userExists.deletedAt) {
+        return res.status(400).send({
+          error: 'User already exists',
+        });
+      }
+
+      await userExists.destroy();
     }
 
     // Encrypting password
@@ -154,9 +158,15 @@ module.exports.users_login = [
       },
     });
 
-    if (!user || user.deletedAt) {
+    if (!user) {
       return res.status(401).send({
         error: 'Invalid credentials',
+      });
+    }
+
+    if (user.deletedAt) {
+      return res.status(401).send({
+        error: 'User deleted',
       });
     }
 
