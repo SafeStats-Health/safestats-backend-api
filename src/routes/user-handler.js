@@ -206,12 +206,6 @@ module.exports.users_login = [
 module.exports.users_delete = [
   passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
-    // Get headers
-    const headers = req.headers;
-    console.log(headers);
-
-    return res.status(200).json({ message: 'User deleted.' });
-
     const { user_id } = req.params;
 
     // Checking if user exists
