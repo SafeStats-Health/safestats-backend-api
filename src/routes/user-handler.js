@@ -1,8 +1,10 @@
 require('dotenv').config({ path: '.env' });
 
 const crypto = require('crypto');
-const bcrypt = require('bcrypt');
 const EmailValidator = require('email-validator');
+const bcrypt = require('bcrypt');
+const uuidValidate = require('uuid-validate');
+const jwt = require('jwt-simple');
 const moment = require('moment');
 const passport = require('passport');
 
@@ -12,7 +14,7 @@ const { createToken } = require('../services/jwt/jwt');
 const sendMail = require('../services/email/email');
 
 const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
-const { FRONT_URL: frontURL } = process.env;
+const { FRONT_URL: frontURL, CRYPTO_KEY: secret } = process.env;
 
 /**
  * @openapi
@@ -206,12 +208,22 @@ module.exports.users_login = [
 module.exports.users_delete = [
   passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
-    const { user_id } = req.params;
+    const { user_id: userId } = req.query;
+    const { authorization } = req.headers;
+
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+
+    // Validating UUID to avoid query error
+    if (!uuidValidate(userId) || decodedToken['user'].id != userId) {
+      return res.status(400).send({
+        error: 'Invalid user UUID',
+      });
+    }
 
     // Checking if user exists
     const user = await User.findOne({
       where: {
-        id: user_id,
+        id: userId,
       },
     });
 
@@ -220,7 +232,7 @@ module.exports.users_delete = [
         error: 'User not found.',
       });
     } else {
-      user.deletedAt = moment().format('YYYY-MM-DD HH:mm:ss');
+      user.deletedAt = moment();
       await user.save();
 
       return res.status(200).json({ message: 'User deleted.' });

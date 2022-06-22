@@ -24,6 +24,10 @@ module.exports.createToken = function (user) {
   const payload = {
     user: {
       id: user.id,
+      nome: user.name,
+      email: user.email,
+      phone: user.phone,
+      birthdate: user.birthdate,
     },
     iss: issuer,
     iat: moment().unix(),

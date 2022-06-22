@@ -61,6 +61,15 @@ const User = database.sequelize.define('users', {
       key: 'id',
     },
   },
+  preferredLanguage: {
+    type: database.Sequelize.STRING,
+    allowNull: false,
+    defaultValue: 'PT-BR',
+  },
+  deletedAt: {
+    type: database.Sequelize.DATE,
+    allowNull: true,
+  },
 });
 
 module.exports = User;
