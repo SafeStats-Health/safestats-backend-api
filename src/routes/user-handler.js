@@ -25,7 +25,7 @@ const { FRONT_URL: frontURL } = process.env;
  *     x-eov-operation-handler: user-handler
  *
  *     requestBody:
- *       description: "User data to be included."
+ *       description: "User data to be registered."
  *       content:
  *         "application/json":
  *           schema:
@@ -60,13 +60,14 @@ module.exports.users_register = [
   async function (req, res) {
     const user = req.body;
 
+    // Validating user email
     if (!EmailValidator.validate(user.email)) {
       return res.status(400).send({
         error: 'Invalid e-mail',
       });
     }
 
-    // Validating password and confirmation
+    // Validating password and confirmation password
     if (user.password !== user.confirmPassword) {
       return res.status(400).send({
         error: 'Password and confirmation must be equal',
@@ -151,7 +152,7 @@ module.exports.users_login = [
       },
     });
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       return res.status(401).send({
         error: 'Invalid credentials',
       });
@@ -179,45 +180,55 @@ module.exports.users_login = [
  * @openapi
  * /users/delete-user:
  *   post:
- *     summary: Soft delete, marks user's deletedAt with current date.
+ *     summary: Soft delete, fill user's deletedAt with current date.
  *     tags:
  *       - "Users"
  *     operationId: users_delete
  *     x-eov-operation-handler: user-handler
- * 
+ *
  *     parameters:
- *      - in: path
+ *      - in: query
  *        name: user_id
  *        schema:
- *          type: integer
+ *          type: string
  *        required: true
  *        description: Numeric ID of the user to delete.
- 
+ *
  *     responses:
  *       '201':
  *         description: "User created"
  *       '400':
  *         description: "Invalid data"
+ *     security:
+ *        - JWT: []
+ *        - {}
  */
 module.exports.users_delete = [
+  passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
+    // Get headers
+    const headers = req.headers;
+    console.log(headers);
+
+    return res.status(200).json({ message: 'User deleted.' });
+
     const { user_id } = req.params;
+
+    // Checking if user exists
     const user = await User.findOne({
       where: {
         id: user_id,
       },
     });
+
     if (!user) {
       return res.status(404).send({
         error: 'User not found.',
       });
     } else {
-      await User.update(
-        {
-          deleted_at: new Date(),
-        },
-        { where: { id: user_id } }
-      );
+      user.deletedAt = moment().format('YYYY-MM-DD HH:mm:ss');
+      await user.save();
+
       return res.status(200).json({ message: 'User deleted.' });
     }
   },
@@ -252,12 +263,8 @@ module.exports.users_delete = [
  *         description: "Recovery link sent"
  *       '404':
  *         description: "User not found"
- *     security:
- *        - JWT: []
- *        - {}
  */
 module.exports.users_request_password_recover = [
-  passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
     const { email } = req.body;
 
@@ -278,27 +285,19 @@ module.exports.users_request_password_recover = [
     // Generating a recovery token
     const token = await Token.findOne({
       where: {
-        user_id: user.id,
+        userId: user.id,
       },
     });
 
     let resetToken = crypto.randomBytes(32).toString('hex');
 
     if (token) {
-      await Token.update(
-        {
-          token: resetToken,
-          createdAt: moment(),
-        },
-        {
-          where: {
-            user_id: user.id,
-          },
-        }
-      );
+      token.token = resetToken;
+      token.createdAt = moment().format('YYYY-MM-DD HH:mm:ss');
+      await token.save();
     } else {
       await Token.create({
-        user_id: user.id,
+        userId: user.id,
         token: resetToken,
         expiration: 60 * 60,
       });
@@ -390,7 +389,7 @@ module.exports.users_update_password = [
 
     const token = await Token.findOne({
       where: {
-        user_id: userId,
+        userId: userId,
         token: userToken,
       },
     });
@@ -444,7 +443,7 @@ module.exports.users_update_password = [
 
     await Token.destroy({
       where: {
-        user_id: token.user_id,
+        userId: token.user_id,
       },
     });
 

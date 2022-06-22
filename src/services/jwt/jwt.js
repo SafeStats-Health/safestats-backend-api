@@ -8,7 +8,7 @@ const AnonymousStrategy = require('passport-anonymous');
 const {
   CRYPTO_KEY: secret,
   ISSUER: issuer,
-  TOKEN_DURATION: tokenDuration,
+  TOKEN_DURATION_IN_SECONDS: tokenDuration,
 } = process.env;
 
 const params = {
@@ -19,17 +19,14 @@ const params = {
 };
 
 module.exports.createToken = function (user) {
-  const exp = moment().add(tokenDuration, 'seconds');
+  const exp = moment().add(tokenDuration, 'seconds').unix();
 
   const payload = {
     user: {
       id: user.id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
     },
     iss: issuer,
-    iat: moment(),
+    iat: moment().unix(),
     exp: exp,
   };
 

@@ -1,9 +1,9 @@
 const database = require('../configs/database/database');
 
 const Token = database.sequelize.define(
-  'token',
+  'tokens',
   {
-    user_id: {
+    userId: {
       type: database.Sequelize.UUID,
       allowNull: false,
       primaryKey: true,
