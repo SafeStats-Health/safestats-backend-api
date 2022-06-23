@@ -3,13 +3,16 @@ require('dotenv').config({ path: '.env' });
 const crypto = require('crypto');
 const EmailValidator = require('email-validator');
 const bcrypt = require('bcrypt');
-const uuidValidate = require('uuid-validate');
 const jwt = require('jwt-simple');
 const moment = require('moment');
 const passport = require('passport');
 
 const User = require('../models/user');
 const Token = require('../models/token');
+const BloodDonation = require('../models/bloodDonation');
+const Address = require('../models/address');
+const TrustedContact = require('../models/trustedContact');
+const HealthPlan = require('../models/healthPlan');
 const { createToken } = require('../services/jwt/jwt');
 const sendMail = require('../services/email/email');
 
@@ -66,6 +69,7 @@ module.exports.users_register = [
     if (!EmailValidator.validate(user.email)) {
       return res.status(400).send({
         error: 'Invalid e-mail',
+        code: 'ERR_INVALID_EMAIL',
       });
     }
 
@@ -73,6 +77,7 @@ module.exports.users_register = [
     if (user.password !== user.confirmPassword) {
       return res.status(400).send({
         error: 'Password and confirmation must be equal',
+        code: 'ERR_INVALID_PASS',
       });
     }
 
@@ -86,7 +91,8 @@ module.exports.users_register = [
     if (userExists) {
       if (!userExists.deletedAt) {
         return res.status(400).send({
-          error: 'User already exists',
+          error: 'Email already in use',
+          code: 'ERR_EMAIL_ALREADY_USED',
         });
       }
 
@@ -554,6 +560,243 @@ module.exports.users_update_password_authenticated = [
 
     return res.status(200).send({
       message: 'Password updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-blood-donation:
+ *   post:
+ *     summary: Updates user's blood information.
+ *     tags:
+ *       - "Users"
+ *     operationId: users_update_blood_donation
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's blood information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - didDonate
+ *               - bloodType
+ *               - donationLocation
+ *
+ *             properties:
+ *               didDonate:
+ *                 type: boolean
+ *                 example: true
+ *               bloodType:
+ *                 type: string
+ *                 example: "A+"
+ *               donationLocation:
+ *                 type: string
+ *                 example: "Hemobanco"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Blood donation info updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_blood_donation = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const bloodDonation = await BloodDonation.create({
+      ...req.body,
+    });
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.bloodDonationId = bloodDonation.id;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Blood donation info updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-address:
+ *   post:
+ *     summary: Updates user's address information.
+ *     tags:
+ *       - "Users"
+ *     operationId: users_update_address
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's address information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - street
+ *               - city
+ *               - state
+ *               - zip
+ *
+ *             properties:
+ *               street:
+ *                 type: string
+ *                 example: "Rua dos bobos"
+ *               city:
+ *                 type: string
+ *                 example: "Curitiba"
+ *               state:
+ *                 type: string
+ *                 example: "PR"
+ *               zip:
+ *                 type: string
+ *                 example: "85800-000"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Address info updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_address = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const address = await Address.create({
+      ...req.body,
+    });
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.addressId = address.id;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Address updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-trusted-contact:
+ *   post:
+ *     summary: Updates user's trusted contact information.
+ *     tags:
+ *       - "Users"
+ *     operationId: users_update_trusted_contact
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's trusted contact information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - phone
+ *               - birthdate
+ *               - address
+ *
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 example: "john@email.com"
+ *               phone:
+ *                 type: string
+ *                 example: "(41) 99999-9999"
+ *               birthdate:
+ *                 type: string
+ *                 example: "1990-01-01"
+ *               address:
+ *                 type: string
+ *                 example: "Rua dos bobos, 41 - Curitiba / PR"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Trusted contact info updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_trusted_contact = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const trustedContact = await TrustedContact.create({
+      ...req.body,
+    });
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.trustedContactId = trustedContact.id;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Trusted contact info updated',
     });
   },
 ];

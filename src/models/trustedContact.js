@@ -14,16 +14,19 @@ const TrustedContact = database.sequelize.define('trustedContacts', {
   email: {
     type: database.Sequelize.STRING,
     allowNull: false,
-    unique: true,
     index: true,
   },
   phone: {
     type: database.Sequelize.STRING,
-    allowNull: true,
+    allowNull: false,
   },
   birthdate: {
     type: database.Sequelize.DATE,
-    allowNull: true,
+    allowNull: false,
+  },
+  address: {
+    type: database.Sequelize.STRING,
+    allowNull: false,
   },
 });
 
