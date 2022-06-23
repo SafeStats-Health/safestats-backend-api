@@ -10,7 +10,6 @@ const passport = require('passport');
 const User = require('../models/user');
 const Token = require('../models/token');
 const BloodDonation = require('../models/bloodDonation');
-const Address = require('../models/address');
 const TrustedContact = require('../models/trustedContact');
 const HealthPlan = require('../models/healthPlan');
 const { createToken } = require('../services/jwt/jwt');
@@ -822,8 +821,8 @@ module.exports.users_update_trusted_contact = [
  *               - accomodation
  *
  *             properties:
- *               name:
- *                 type: institution
+ *               institution:
+ *                 type: string
  *                 example: "Unimed"
  *               type:
  *                 type: string
