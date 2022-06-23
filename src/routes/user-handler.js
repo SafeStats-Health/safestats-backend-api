@@ -1,7 +1,6 @@
 require('dotenv').config({ path: '.env' });
 
 const crypto = require('crypto');
-const EmailValidator = require('email-validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jwt-simple');
 const moment = require('moment');
@@ -12,7 +11,6 @@ const Token = require('../models/token');
 const BloodDonation = require('../models/bloodDonation');
 const TrustedContact = require('../models/trustedContact');
 const HealthPlan = require('../models/healthPlan');
-const { createToken } = require('../services/jwt/jwt');
 const sendMail = require('../services/email/email');
 
 const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
@@ -20,186 +18,11 @@ const { FRONT_URL: frontURL, CRYPTO_KEY: secret } = process.env;
 
 /**
  * @openapi
- * /users/register:
- *   post:
- *     summary: Inserts an user in the database.
- *     tags:
- *       - "Users"
- *     operationId: users_register
- *     x-eov-operation-handler: user-handler
- *
- *     requestBody:
- *       description: "User data to be registered."
- *       content:
- *         "application/json":
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
- *               - confirmPassword
- *
- *             properties:
- *               name:
- *                 type: string
- *                 example: "José Pereira da Silva"
- *               email:
- *                 type: string
- *                 example: "jose@email.com"
- *               password:
- *                 type: string
- *                 example: "123456"
- *               confirmPassword:
- *                 type: string
- *                 example: "123456"
- *
- *     responses:
- *       '201':
- *         description: "User created"
- *       '400':
- *         description: "Invalid data"
- */
-module.exports.users_register = [
-  async function (req, res) {
-    const user = req.body;
-
-    // Validating user email
-    if (!EmailValidator.validate(user.email)) {
-      return res.status(400).send({
-        error: 'Invalid e-mail',
-        code: 'ERR_INVALID_EMAIL',
-      });
-    }
-
-    // Validating password and confirmation password
-    if (user.password !== user.confirmPassword) {
-      return res.status(400).send({
-        error: 'Password and confirmation must be equal',
-        code: 'ERR_INVALID_PASS',
-      });
-    }
-
-    // Checking if user already exists
-    const userExists = await User.findOne({
-      where: {
-        email: user.email,
-      },
-    });
-
-    if (userExists) {
-      if (!userExists.deletedAt) {
-        return res.status(400).send({
-          error: 'Email already in use',
-          code: 'ERR_EMAIL_ALREADY_USED',
-        });
-      }
-
-      await userExists.destroy();
-    }
-
-    // Encrypting password
-    const salt = await bcrypt.genSalt(encryptSalt);
-    user.password = await bcrypt.hash(user.password, salt);
-
-    // Creating user
-    await User.create(user);
-
-    // Sending confirmation email to the user
-    sendMail(
-      '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
-      user.email,
-      'Seja bem-vindo ao SafeStats 🥰',
-      '',
-      '<b>Seja bem-vindo ao SafeStats!</b> <br/> Ficamos muito felizes com sua presença!'
-    );
-
-    return res.status(201).send({ message: 'User created' });
-  },
-];
-
-/**
- * @openapi
- * /users/login:
- *   post:
- *     summary: Login a user.
- *     tags:
- *       - "Users"
- *     operationId: users_login
- *     x-eov-operation-handler: user-handler
- *
- *     requestBody:
- *       description: "User credentials."
- *       content:
- *         "application/json":
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *
- *             properties:
- *               email:
- *                 type: string
- *                 example: "jose@email.com"
- *               password:
- *                 type: string
- *                 example: "123456"
- *
- *     responses:
- *       '200':
- *         description: "User logged in"
- *       '401':
- *         description: "Invalid credentials"
- */
-module.exports.users_login = [
-  async function (req, res) {
-    const { email, password } = req.body;
-
-    // Checking if user exists
-    const user = await User.findOne({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) {
-      return res.status(401).send({
-        error: 'Invalid credentials',
-      });
-    }
-
-    if (user.deletedAt) {
-      return res.status(401).send({
-        error: 'User deleted',
-      });
-    }
-
-    // Checking if password is correct
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordCorrect) {
-      return res.status(401).send({
-        error: 'Invalid credentials',
-      });
-    }
-
-    // Creating JWT code
-    const token = createToken(user);
-
-    return res.status(200).json({
-      token: token,
-    });
-  },
-];
-
-/**
- * @openapi
  * /users/delete-user:
  *   post:
  *     summary: Soft delete, fill user's deletedAt with current date.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_delete
  *     x-eov-operation-handler: user-handler
  *
@@ -272,7 +95,7 @@ module.exports.users_delete = [
  *   post:
  *     summary: Request a user password recover.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_request_password_recover
  *     x-eov-operation-handler: user-handler
  *
@@ -361,7 +184,7 @@ module.exports.users_request_password_recover = [
  *   post:
  *     summary: Updates user password.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_update_password_token
  *     x-eov-operation-handler: user-handler
  *
@@ -491,7 +314,7 @@ module.exports.users_update_password_token = [
  *   post:
  *     summary: Updates user password when authenticated.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_update_password_authenticated
  *     x-eov-operation-handler: user-handler
  *
@@ -569,7 +392,7 @@ module.exports.users_update_password_authenticated = [
  *   post:
  *     summary: Updates user's personal-data.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_update_personal_data
  *     x-eov-operation-handler: user-handler
  *
@@ -601,7 +424,7 @@ module.exports.users_update_password_authenticated = [
  *
  *     responses:
  *       '200':
- *         description: "User info updated"
+ *         description: "User updated"
  *       '401':
  *         description: "Unauthorized"
  *       '400':
@@ -636,7 +459,7 @@ module.exports.users_update_personal_data = [
     await user.save();
 
     res.status(200).send({
-      message: 'User info updated',
+      message: 'User updated',
     });
   },
 ];
@@ -647,13 +470,13 @@ module.exports.users_update_personal_data = [
  *   get:
  *     summary: Retrieves user's personal-data.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_personal_data
  *     x-eov-operation-handler: user-handler
  *
  *     responses:
  *       '200':
- *         description: "User info retrieved"
+ *         description: "User retrieved"
  *       '401':
  *         description: "Unauthorized"
  *       '400':
@@ -699,7 +522,7 @@ module.exports.users_personal_data = [
  *   post:
  *     summary: Updates user's blood information.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_update_blood_donation
  *     x-eov-operation-handler: user-handler
  *
@@ -774,13 +597,13 @@ module.exports.users_update_blood_donation = [
  *   get:
  *     summary: Retrieves user's blood-donation.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_blood_donation
  *     x-eov-operation-handler: user-handler
  *
  *     responses:
  *       '200':
- *         description: "User info retrieved"
+ *         description: "User retrieved"
  *       '401':
  *         description: "Unauthorized"
  *       '400':
@@ -834,7 +657,7 @@ module.exports.users_blood_donation = [
  *   post:
  *     summary: Updates user's trusted contact information.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_update_trusted_contact
  *     x-eov-operation-handler: user-handler
  *
@@ -917,13 +740,13 @@ module.exports.users_update_trusted_contact = [
  *   get:
  *     summary: Retrieves user's trusted-contact.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_trusted_contact
  *     x-eov-operation-handler: user-handler
  *
  *     responses:
  *       '200':
- *         description: "User info retrieved"
+ *         description: "User retrieved"
  *       '401':
  *         description: "Unauthorized"
  *       '400':
@@ -979,7 +802,7 @@ module.exports.users_trusted_contact = [
  *   post:
  *     summary: Updates user's health plan information.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_update_health_plan
  *     x-eov-operation-handler: user-handler
  *
@@ -1054,13 +877,13 @@ module.exports.users_update_health_plan = [
  *   get:
  *     summary: Retrieves user's health-plan.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_health_plan
  *     x-eov-operation-handler: user-handler
  *
  *     responses:
  *       '200':
- *         description: "User info retrieved"
+ *         description: "User retrieved"
  *       '401':
  *         description: "Unauthorized"
  *       '400':

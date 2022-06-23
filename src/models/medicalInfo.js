@@ -1,28 +1,20 @@
 const database = require('../configs/database/database');
 
-const Address = database.sequelize.define('addresses', {
+const MedicalInfo = database.sequelize.define('medicalInfos', {
   id: {
     type: database.Sequelize.UUID,
     allowNull: false,
     primaryKey: true,
     defaultValue: database.Sequelize.UUIDV4,
   },
-  street: {
+  type: {
     type: database.Sequelize.STRING,
     allowNull: false,
   },
-  city: {
-    type: database.Sequelize.STRING,
-    allowNull: false,
-  },
-  state: {
-    type: database.Sequelize.STRING,
-    allowNull: false,
-  },
-  zip: {
+  name: {
     type: database.Sequelize.STRING,
     allowNull: false,
   },
 });
 
-module.exports = Address;
+module.exports = MedicalInfo;

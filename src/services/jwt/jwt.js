@@ -1,5 +1,9 @@
 require('dotenv').config({ path: '.env' });
 
+const BloodDonation = require('../../models/bloodDonation');
+const TrustedContact = require('../../models/trustedContact');
+const HealthPlan = require('../../models/healthPlan');
+
 const jwt = require('jwt-simple');
 const moment = require('moment');
 const { ExtractJwt, Strategy } = require('passport-jwt');
@@ -18,8 +22,26 @@ const params = {
   issuer: issuer,
 };
 
-module.exports.createToken = function (user) {
+module.exports.createToken = async function (user) {
   const exp = moment().add(tokenDuration, 'seconds').unix();
+
+  const bloodDonation = await BloodDonation.findOne({
+    where: {
+      id: user.bloodDonationId,
+    },
+  });
+
+  const trustedContact = await TrustedContact.findOne({
+    where: {
+      id: user.trustedContactId,
+    },
+  });
+
+  const healthPlan = await HealthPlan.findOne({
+    where: {
+      id: user.healthPlanId,
+    },
+  });
 
   const payload = {
     user: {
@@ -28,6 +50,12 @@ module.exports.createToken = function (user) {
       email: user.email,
       phone: user.phone,
       birthdate: user.birthdate,
+      age: user.birthdate ? moment().diff(user.birthdate, 'years') : null,
+      preferredLanguage: user.preferredLanguage,
+      bloodType: bloodDonation.bloodType,
+      didDonateBlood: bloodDonation.didDonate,
+      legalRepresentative: trustedContact.name,
+      healthPlan: healthPlan.type,
     },
     iss: issuer,
     iat: moment().unix(),
