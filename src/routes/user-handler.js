@@ -159,7 +159,7 @@ module.exports.users_request_password_recover = [
     }
 
     // Send a link to the user to recover his password
-    const link = `${frontURL}/passwordReset?token=${resetToken}&user_id=${user.id}`;
+    const link = `${frontURL}/reset_password?token=${resetToken}`;
 
     await sendMail(
       '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
@@ -196,17 +196,13 @@ module.exports.users_request_password_recover = [
  *             type: object
  *             required:
  *               - token
- *               - userId
  *               - newPassword
  *               - newPasswordConfirmation
  *
  *             properties:
  *               token:
  *                 type: string
- *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
- *               userId:
- *                 type: string
- *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
+ *                 example: "93637cc78aa24ff4bd56cc05762eb55b"
  *               newPassword:
  *                 type: string
  *                 example: "Josezinho@123"
@@ -217,40 +213,28 @@ module.exports.users_request_password_recover = [
  *       '200':
  *         description: "Password updated"
  *       '400':
- *         description: "Invalid token"
+ *         description: "Password and confirmation must be equal"
  *       '404':
- *         description: "User not found"
+ *         description: "Token not found"
  */
 module.exports.users_update_password_token = [
   async function (req, res) {
-    const {
-      token: userToken,
-      userId,
-      newPassword,
-      newPasswordConfirmation,
-    } = req.body;
-
-    if (!(userToken || userId)) {
-      return res.status(400).send({
-        error: 'Invalid token',
-      });
-    }
-
-    if (newPassword != newPasswordConfirmation) {
-      return res
-        .status(400)
-        .send({ error: 'Password and confirmation must be equal' });
-    }
+    const { token: userToken, newPassword, newPasswordConfirmation } = req.body;
 
     const token = await Token.findOne({
       where: {
-        userId: userId,
         token: userToken,
       },
     });
 
     if (!token) {
       return res.status(404).send({ error: 'Token not found' });
+    }
+
+    if (newPassword != newPasswordConfirmation) {
+      return res
+        .status(400)
+        .send({ error: 'Password and confirmation must be equal' });
     }
 
     const currentDateTime = moment();
@@ -268,20 +252,18 @@ module.exports.users_update_password_token = [
     const salt = await bcrypt.genSalt(encryptSalt);
     const newUserPassword = await bcrypt.hash(newPassword, salt);
 
-    await User.update(
-      {
-        password: newUserPassword,
-      },
-      {
-        where: {
-          id: userId,
-        },
-      }
-    );
-
     const user = await User.findOne({
       where: {
-        id: userId,
+        id: token.userId,
+      },
+    });
+
+    user.password = newUserPassword;
+    await user.save();
+
+    await Token.destroy({
+      where: {
+        userId: user.id,
       },
     });
 
@@ -295,12 +277,6 @@ module.exports.users_update_password_token = [
       <b>Caso não reconheça essa alteração, entre em contato conosco!</b>
       `
     );
-
-    await Token.destroy({
-      where: {
-        userId: token.user_id,
-      },
-    });
 
     return res.status(200).send({
       message: 'Password updated',
@@ -388,7 +364,7 @@ module.exports.users_update_password_authenticated = [
 
 /**
  * @openapi
- * /users/update-user-personal-data:
+ * /users/update-personal-data:
  *   post:
  *     summary: Updates user's personal-data.
  *     tags:
@@ -441,6 +417,13 @@ module.exports.users_update_personal_data = [
     const { authorization } = req.headers;
     const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
     const userId = decodedToken['user'].id;
+
+    // Validate if birthdate is on format YYYY-MM-DD
+    const { birthdate } = req.body;
+
+    if (!moment(birthdate, 'YYYY-MM-DD', true).isValid()) {
+      return res.status(400).send({ error: 'Invalid birthdate' });
+    }
 
     const user = await User.findOne({
       where: {
