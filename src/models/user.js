@@ -29,13 +29,9 @@ const User = database.sequelize.define('users', {
     type: database.Sequelize.DATE,
     allowNull: true,
   },
-  addressId: {
-    type: database.Sequelize.UUID,
+  address: {
+    type: database.Sequelize.STRING,
     allowNull: true,
-    references: {
-      model: 'addresses',
-      key: 'id',
-    },
   },
   trustedContactId: {
     type: database.Sequelize.UUID,

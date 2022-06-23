@@ -641,43 +641,43 @@ module.exports.users_update_blood_donation = [
 
 /**
  * @openapi
- * /users/update-address:
+ * /users/update-user-info:
  *   post:
- *     summary: Updates user's address information.
+ *     summary: Updates user's information.
  *     tags:
  *       - "Users"
- *     operationId: users_update_address
+ *     operationId: users_update_user_info
  *     x-eov-operation-handler: user-handler
  *
  *     requestBody:
- *       description: "Updates user's address information."
+ *       description: "Updates user's information."
  *       content:
  *         "application/json":
  *           schema:
  *             type: object
  *             required:
- *               - street
- *               - city
- *               - state
- *               - zip
+ *               - name
+ *               - phone
+ *               - address
+ *               - birthdate
  *
  *             properties:
- *               street:
+ *               name:
  *                 type: string
- *                 example: "Rua dos bobos"
- *               city:
+ *                 example: "Joselito"
+ *               phone:
  *                 type: string
- *                 example: "Curitiba"
- *               state:
+ *                 example: "(11) 99999-9999"
+ *               address:
  *                 type: string
- *                 example: "PR"
- *               zip:
+ *                 example: "Rua dos Bobos, 0 - Bairro dos Bobos - SP"
+ *               birthdate:
  *                 type: string
- *                 example: "85800-000"
+ *                 example: "1990-01-01"
  *
  *     responses:
  *       '200':
- *         description: "Address info updated"
+ *         description: "User info updated"
  *       '401':
  *         description: "Unauthorized"
  *       '400':
@@ -688,16 +688,12 @@ module.exports.users_update_blood_donation = [
  *        - JWT: []
  *        - {}
  */
-module.exports.users_update_address = [
+module.exports.users_update_user_info = [
   passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
     const { authorization } = req.headers;
     const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
     const userId = decodedToken['user'].id;
-
-    const address = await Address.create({
-      ...req.body,
-    });
 
     const user = await User.findOne({
       where: {
@@ -709,11 +705,14 @@ module.exports.users_update_address = [
       return res.status(404).send({ error: 'User not found' });
     }
 
-    user.addressId = address.id;
+    user.name = req.body.name;
+    user.phone = req.body.phone;
+    user.address = req.body.address;
+    user.birthdate = req.body.birthdate;
     await user.save();
 
     res.status(200).send({
-      message: 'Address updated',
+      message: 'User info updated',
     });
   },
 ];
@@ -797,6 +796,81 @@ module.exports.users_update_trusted_contact = [
 
     res.status(200).send({
       message: 'Trusted contact info updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-health-plan:
+ *   post:
+ *     summary: Updates user's health plan information.
+ *     tags:
+ *       - "Users"
+ *     operationId: users_update_health_plan
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's health plan information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - institution
+ *               - type
+ *               - accomodation
+ *
+ *             properties:
+ *               name:
+ *                 type: institution
+ *                 example: "Unimed"
+ *               type:
+ *                 type: string
+ *                 example: "Ouro"
+ *               accomodation:
+ *                 type: string
+ *                 example: "Enfermaria"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Health plan info updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_health_plan = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const healthPlan = await HealthPlan.create({
+      ...req.body,
+    });
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.healthPlanId = healthPlan.id;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Health plan info updated',
     });
   },
 ];
