@@ -14,7 +14,7 @@ const HealthPlan = require('../models/healthPlan');
 const sendMail = require('../services/email/email');
 
 const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
-const { FRONT_URL: frontURL, CRYPTO_KEY: secret } = process.env;
+const { FRONTEND_URL: frontURL, CRYPTO_KEY: secret } = process.env;
 
 /**
  * @openapi
