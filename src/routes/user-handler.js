@@ -565,81 +565,6 @@ module.exports.users_update_password_authenticated = [
 
 /**
  * @openapi
- * /users/update-blood-donation:
- *   post:
- *     summary: Updates user's blood information.
- *     tags:
- *       - "Users"
- *     operationId: users_update_blood_donation
- *     x-eov-operation-handler: user-handler
- *
- *     requestBody:
- *       description: "Updates user's blood information."
- *       content:
- *         "application/json":
- *           schema:
- *             type: object
- *             required:
- *               - didDonate
- *               - bloodType
- *               - donationLocation
- *
- *             properties:
- *               didDonate:
- *                 type: boolean
- *                 example: true
- *               bloodType:
- *                 type: string
- *                 example: "A+"
- *               donationLocation:
- *                 type: string
- *                 example: "Hemobanco"
- *
- *     responses:
- *       '200':
- *         description: "Blood donation info updated"
- *       '401':
- *         description: "Unauthorized"
- *       '400':
- *         description: "Invalid data"
- *       '404':
- *         description: "User not found"
- *     security:
- *        - JWT: []
- *        - {}
- */
-module.exports.users_update_blood_donation = [
-  passport.authenticate(['jwt'], { session: false }),
-  async function (req, res) {
-    const { authorization } = req.headers;
-    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
-    const userId = decodedToken['user'].id;
-
-    const bloodDonation = await BloodDonation.create({
-      ...req.body,
-    });
-
-    const user = await User.findOne({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).send({ error: 'User not found' });
-    }
-
-    user.bloodDonationId = bloodDonation.id;
-    await user.save();
-
-    res.status(200).send({
-      message: 'Blood donation info updated',
-    });
-  },
-];
-
-/**
- * @openapi
  * /users/update-user-personal-data:
  *   post:
  *     summary: Updates user's personal-data.
@@ -770,17 +695,39 @@ module.exports.users_personal_data = [
 
 /**
  * @openapi
- * /users/user-trusted-contact:
- *   get:
- *     summary: Retrieves user's trusted-contact.
+ * /users/update-blood-donation:
+ *   post:
+ *     summary: Updates user's blood information.
  *     tags:
  *       - "Users"
- *     operationId: users_trusted_contact
+ *     operationId: users_update_blood_donation
  *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's blood information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - didDonate
+ *               - bloodType
+ *               - donationLocation
+ *
+ *             properties:
+ *               didDonate:
+ *                 type: boolean
+ *                 example: true
+ *               bloodType:
+ *                 type: string
+ *                 example: "A+"
+ *               donationLocation:
+ *                 type: string
+ *                 example: "Hemobanco"
  *
  *     responses:
  *       '200':
- *         description: "User info retrieved"
+ *         description: "Blood donation info updated"
  *       '401':
  *         description: "Unauthorized"
  *       '400':
@@ -791,12 +738,16 @@ module.exports.users_personal_data = [
  *        - JWT: []
  *        - {}
  */
-module.exports.users_trusted_contact = [
+module.exports.users_update_blood_donation = [
   passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
     const { authorization } = req.headers;
     const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
     const userId = decodedToken['user'].id;
+
+    const bloodDonation = await BloodDonation.create({
+      ...req.body,
+    });
 
     const user = await User.findOne({
       where: {
@@ -808,84 +759,11 @@ module.exports.users_trusted_contact = [
       return res.status(404).send({ error: 'User not found' });
     }
 
-    const trustedContact = await TrustedContact.findOne({
-      where: {
-        id: user.trustedContactId,
-      },
-    });
-
-    if (!trustedContact) {
-      return res.status(404).send({ error: 'Trusted contact not found' });
-    }
+    user.bloodDonationId = bloodDonation.id;
+    await user.save();
 
     res.status(200).send({
-      trustedContact: {
-        name: trustedContact.name,
-        email: trustedContact.email,
-        phone: trustedContact.phone,
-        address: trustedContact.address,
-        birthdate: trustedContact.birthdate,
-      },
-    });
-  },
-];
-
-/**
- * @openapi
- * /users/user-health-plan:
- *   get:
- *     summary: Retrieves user's health-plan.
- *     tags:
- *       - "Users"
- *     operationId: users_health_plan
- *     x-eov-operation-handler: user-handler
- *
- *     responses:
- *       '200':
- *         description: "User info retrieved"
- *       '401':
- *         description: "Unauthorized"
- *       '400':
- *         description: "Invalid data"
- *       '404':
- *         description: "User not found"
- *     security:
- *        - JWT: []
- *        - {}
- */
-module.exports.users_health_plan = [
-  passport.authenticate(['jwt'], { session: false }),
-  async function (req, res) {
-    const { authorization } = req.headers;
-    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
-    const userId = decodedToken['user'].id;
-
-    const user = await User.findOne({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).send({ error: 'User not found' });
-    }
-
-    const healthPlan = await HealthPlan.findOne({
-      where: {
-        id: user.healthPlanId,
-      },
-    });
-
-    if (!healthPlan) {
-      return res.status(404).send({ error: 'Health plan not found' });
-    }
-
-    res.status(200).send({
-      healthPlan: {
-        institution: healthPlan.institution,
-        type: healthPlan.type,
-        accomodation: healthPlan.accomodation,
-      },
+      message: 'Blood donation info updated',
     });
   },
 ];
@@ -1035,6 +913,68 @@ module.exports.users_update_trusted_contact = [
 
 /**
  * @openapi
+ * /users/user-trusted-contact:
+ *   get:
+ *     summary: Retrieves user's trusted-contact.
+ *     tags:
+ *       - "Users"
+ *     operationId: users_trusted_contact
+ *     x-eov-operation-handler: user-handler
+ *
+ *     responses:
+ *       '200':
+ *         description: "User info retrieved"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_trusted_contact = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const trustedContact = await TrustedContact.findOne({
+      where: {
+        id: user.trustedContactId,
+      },
+    });
+
+    if (!trustedContact) {
+      return res.status(404).send({ error: 'Trusted contact not found' });
+    }
+
+    res.status(200).send({
+      trustedContact: {
+        name: trustedContact.name,
+        email: trustedContact.email,
+        phone: trustedContact.phone,
+        address: trustedContact.address,
+        birthdate: trustedContact.birthdate,
+      },
+    });
+  },
+];
+
+/**
+ * @openapi
  * /users/update-health-plan:
  *   post:
  *     summary: Updates user's health plan information.
@@ -1104,6 +1044,66 @@ module.exports.users_update_health_plan = [
 
     res.status(200).send({
       message: 'Health plan info updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/user-health-plan:
+ *   get:
+ *     summary: Retrieves user's health-plan.
+ *     tags:
+ *       - "Users"
+ *     operationId: users_health_plan
+ *     x-eov-operation-handler: user-handler
+ *
+ *     responses:
+ *       '200':
+ *         description: "User info retrieved"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_health_plan = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const healthPlan = await HealthPlan.findOne({
+      where: {
+        id: user.healthPlanId,
+      },
+    });
+
+    if (!healthPlan) {
+      return res.status(404).send({ error: 'Health plan not found' });
+    }
+
+    res.status(200).send({
+      healthPlan: {
+        institution: healthPlan.institution,
+        type: healthPlan.type,
+        accomodation: healthPlan.accomodation,
+      },
     });
   },
 ];
