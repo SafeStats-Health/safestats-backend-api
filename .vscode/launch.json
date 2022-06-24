@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Safestats API",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "program": "${workspaceFolder}/src/bin/www",
+      "args": ["--exec sucrase-node --ignore __tests__"],
+      "request": "launch",
+      "restart": true,
+      "runtimeExecutable": "nodemon",
+      "type": "node"
+    }
+  ]
+}

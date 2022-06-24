@@ -1,5 +1,9 @@
 require('dotenv').config({ path: '.env' });
 
+const BloodDonation = require('../../models/bloodDonation');
+const TrustedContact = require('../../models/trustedContact');
+const HealthPlan = require('../../models/healthPlan');
+
 const jwt = require('jwt-simple');
 const moment = require('moment');
 const { ExtractJwt, Strategy } = require('passport-jwt');
@@ -8,7 +12,7 @@ const AnonymousStrategy = require('passport-anonymous');
 const {
   CRYPTO_KEY: secret,
   ISSUER: issuer,
-  TOKEN_DURATION: tokenDuration,
+  TOKEN_DURATION_IN_SECONDS: tokenDuration,
 } = process.env;
 
 const params = {
@@ -18,18 +22,43 @@ const params = {
   issuer: issuer,
 };
 
-module.exports.createToken = function (user) {
-  const exp = moment().add(tokenDuration, 'seconds');
+module.exports.createToken = async function (user) {
+  const exp = moment().add(tokenDuration, 'seconds').unix();
+
+  const bloodDonation = await BloodDonation.findOne({
+    where: {
+      id: user.bloodDonationId,
+    },
+  });
+
+  const trustedContact = await TrustedContact.findOne({
+    where: {
+      id: user.trustedContactId,
+    },
+  });
+
+  const healthPlan = await HealthPlan.findOne({
+    where: {
+      id: user.healthPlanId,
+    },
+  });
 
   const payload = {
     user: {
       id: user.id,
       name: user.name,
       email: user.email,
-      createdAt: user.createdAt,
+      phone: user.phone,
+      birthdate: user.birthdate,
+      age: user.birthdate ? moment().diff(user.birthdate, 'years') : null,
+      preferredLanguage: user.preferredLanguage,
+      bloodType: bloodDonation ? bloodDonation.bloodType : null,
+      didDonateBlood: bloodDonation ? bloodDonation.didDonate : null,
+      legalRepresentative: trustedContact ? trustedContact.name : null,
+      healthPlan: healthPlan ? healthPlan.institution : null,
     },
     iss: issuer,
-    iat: moment(),
+    iat: moment().unix(),
     exp: exp,
   };
 

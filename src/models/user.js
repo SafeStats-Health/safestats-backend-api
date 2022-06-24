@@ -1,6 +1,6 @@
 const database = require('../configs/database/database');
 
-const User = database.sequelize.define('user', {
+const User = database.sequelize.define('users', {
   id: {
     type: database.Sequelize.UUID,
     allowNull: false,
@@ -20,6 +20,51 @@ const User = database.sequelize.define('user', {
   password: {
     type: database.Sequelize.STRING,
     allowNull: false,
+  },
+  phone: {
+    type: database.Sequelize.STRING,
+    allowNull: true,
+  },
+  birthdate: {
+    type: database.Sequelize.DATE,
+    allowNull: true,
+  },
+  address: {
+    type: database.Sequelize.STRING,
+    allowNull: true,
+  },
+  trustedContactId: {
+    type: database.Sequelize.UUID,
+    allowNull: true,
+    references: {
+      model: 'trustedContacts',
+      key: 'id',
+    },
+  },
+  healthPlanId: {
+    type: database.Sequelize.UUID,
+    allowNull: true,
+    references: {
+      model: 'healthPlans',
+      key: 'id',
+    },
+  },
+  bloodDonationId: {
+    type: database.Sequelize.UUID,
+    allowNull: true,
+    references: {
+      model: 'bloodDonations',
+      key: 'id',
+    },
+  },
+  preferredLanguage: {
+    type: database.Sequelize.STRING,
+    allowNull: false,
+    defaultValue: 'PT-BR',
+  },
+  deletedAt: {
+    type: database.Sequelize.DATE,
+    allowNull: true,
   },
 });
 

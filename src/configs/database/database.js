@@ -3,43 +3,30 @@ require('dotenv').config({
 });
 
 const Sequelize = require('sequelize');
-const credentials = require('./credentials');
+const databaseCredentials = require('./databaseCredentials');
 
-const {
-  TIMEZONE: timezone,
-  ENVIRONMENT: env,
-  DATABASE_URL: databaseUrl,
-} = process.env;
+// Getting environment variables
+const { ENVIRONMENT: environment, DATABASE_URL: databaseUrl } = process.env;
 
-var environment;
+var database = {},
+  sequelize;
 
-if (env === 'LOCAL') {
-  environment = 'development';
-} else if (env === 'UNIVERSITY') {
-  environment = 'university';
-} else if (env === 'TEST') {
-  environment = 'test';
-}
-
-var database = {};
-var sequelize;
-
-if (env != 'PRODUCTION') {
+if (environment != 'PRODUCTION') {
+  // Creating a new Sequelize instance for non production environment
   sequelize = new Sequelize(
-    credentials[environment]['database'],
-    credentials[environment]['username'],
-    credentials[environment]['password'],
+    databaseCredentials[environment]['database'],
+    databaseCredentials[environment]['username'],
+    databaseCredentials[environment]['password'],
     {
-      host: credentials[environment]['host'],
-      port: credentials[environment]['port'],
-      dialect: credentials[environment]['dialect'],
-      storage: credentials[environment]['storage'] || ':memory:',
-      loggin: credentials[environment]['logging'],
-      define: credentials[environment]['define'],
-      timezone: timezone,
+      host: databaseCredentials[environment]['host'],
+      port: databaseCredentials[environment]['port'],
+      dialect: databaseCredentials[environment]['dialect'],
+      storage: databaseCredentials[environment]['storage'] || ':memory:',
+      loggin: databaseCredentials[environment]['logging'],
     }
   );
 } else {
+  // Creating a new Sequelize instance for production environment
   sequelize = new Sequelize(databaseUrl, {
     dialectOptions: {
       ssl: {

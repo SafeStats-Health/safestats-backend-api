@@ -2,118 +2,28 @@ require('dotenv').config({ path: '.env' });
 
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
-const EmailValidator = require('email-validator');
+const jwt = require('jwt-simple');
 const moment = require('moment');
 const passport = require('passport');
 
 const User = require('../models/user');
 const Token = require('../models/token');
-const { createToken } = require('../services/jwt/jwt');
+const BloodDonation = require('../models/bloodDonation');
+const TrustedContact = require('../models/trustedContact');
+const HealthPlan = require('../models/healthPlan');
 const sendMail = require('../services/email/email');
 
 const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
-const { FRONT_URL: frontURL } = process.env;
+const { FRONTEND_URL: frontendUrl, CRYPTO_KEY: secret } = process.env;
 
 /**
  * @openapi
- * /users/register:
+ * /users/delete-user:
  *   post:
- *     summary: Inserts an user in the database.
+ *     summary: Soft delete, fill user's deletedAt with current date.
  *     tags:
- *       - "Users"
- *     operationId: users_register
- *     x-eov-operation-handler: user-handler
- *
- *     requestBody:
- *       description: "User data to be included."
- *       content:
- *         "application/json":
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
- *               - confirmPassword
- *
- *             properties:
- *               name:
- *                 type: string
- *                 example: "José Pereira da Silva"
- *               email:
- *                 type: string
- *                 example: "jose@email.com"
- *               password:
- *                 type: string
- *                 example: "123456"
- *               confirmPassword:
- *                 type: string
- *                 example: "123456"
- *
- *     responses:
- *       '201':
- *         description: "User created"
- *       '400':
- *         description: "Invalid data"
- */
-module.exports.users_register = [
-  async function (req, res) {
-    const user = req.body;
-
-    if (!EmailValidator.validate(user.email)) {
-      return res.status(400).send({
-        error: 'Invalid e-mail',
-      });
-    }
-
-    // Validating password and confirmation
-    if (user.password !== user.confirmPassword) {
-      return res.status(400).send({
-        error: 'Password and confirmation must be equal',
-      });
-    }
-
-    // Checking if user already exists
-    const userExists = await User.findOne({
-      where: {
-        email: user.email,
-      },
-    });
-
-    if (userExists) {
-      return res.status(400).send({
-        error: 'User already exists',
-      });
-    }
-
-    // Encrypting password
-    const salt = await bcrypt.genSalt(encryptSalt);
-    user.password = await bcrypt.hash(user.password, salt);
-
-    // Creating user
-    await User.create(user);
-
-    // Sending confirmation email to the user
-    sendMail(
-      '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
-      user.email,
-      'Seja bem-vindo ao SafeStats 🥰',
-      '',
-      '<b>Seja bem-vindo ao SafeStats!</b> <br/> Ficamos muito felizes com sua presença!'
-    );
-
-    return res.status(201).send({ message: 'User created' });
-  },
-];
-
-/**
- * @openapi
- * /users/login:
- *   post:
- *     summary: Login a user.
- *     tags:
- *       - "Users"
- *     operationId: users_login
+ *       - "User"
+ *     operationId: users_delete
  *     x-eov-operation-handler: user-handler
  *
  *     requestBody:
@@ -123,101 +33,57 @@ module.exports.users_register = [
  *           schema:
  *             type: object
  *             required:
- *               - email
  *               - password
+ *               - passwordConfirmation
  *
  *             properties:
- *               email:
- *                 type: string
- *                 example: "jose@email.com"
  *               password:
+ *                 type: string
+ *                 example: "123456"
+ *               passwordConfirmation:
  *                 type: string
  *                 example: "123456"
  *
  *     responses:
  *       '200':
- *         description: "User logged in"
- *       '401':
+ *         description: "User deleted"
+ *       '400':
  *         description: "Invalid credentials"
+ *     security:
+ *        - JWT: []
+ *        - {}
  */
-module.exports.users_login = [
+module.exports.users_delete = [
+  passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
-    const { email, password } = req.body;
+    const { password, passwordConfirmation } = req.body;
+    const { authorization } = req.headers;
+
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    // Validating password and confirmation password
+    if (password != passwordConfirmation) {
+      return res.status(400).send({
+        error: 'Password and confirmation must be equal',
+      });
+    }
 
     // Checking if user exists
     const user = await User.findOne({
       where: {
-        email,
+        id: userId,
       },
     });
 
-    if (!user) {
-      return res.status(401).send({
-        error: 'Invalid credentials',
-      });
-    }
-
-    // Checking if password is correct
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordCorrect) {
-      return res.status(401).send({
-        error: 'Invalid credentials',
-      });
-    }
-
-    // Creating JWT code
-    const token = createToken(user);
-
-    return res.status(200).json({
-      token: token,
-    });
-  },
-];
-
-/**
- * @openapi
- * /users/delete-user:
- *   post:
- *     summary: Soft delete, marks user's deletedAt with current date.
- *     tags:
- *       - "Users"
- *     operationId: users_delete
- *     x-eov-operation-handler: user-handler
- * 
- *     parameters:
- *      - in: path
- *        name: user_id
- *        schema:
- *          type: integer
- *        required: true
- *        description: Numeric ID of the user to delete.
- 
- *     responses:
- *       '201':
- *         description: "User created"
- *       '400':
- *         description: "Invalid data"
- */
-module.exports.users_delete = [
-  async function (req, res) {
-    const { user_id } = req.params;
-    const user = await User.findOne({
-      where: {
-        id: user_id,
-      },
-    });
     if (!user) {
       return res.status(404).send({
         error: 'User not found.',
       });
     } else {
-      await User.update(
-        {
-          deleted_at: new Date(),
-        },
-        { where: { id: user_id } }
-      );
+      user.deletedAt = moment();
+      await user.save();
+
       return res.status(200).json({ message: 'User deleted.' });
     }
   },
@@ -229,7 +95,7 @@ module.exports.users_delete = [
  *   post:
  *     summary: Request a user password recover.
  *     tags:
- *       - "Users"
+ *       - "User"
  *     operationId: users_request_password_recover
  *     x-eov-operation-handler: user-handler
  *
@@ -252,12 +118,8 @@ module.exports.users_delete = [
  *         description: "Recovery link sent"
  *       '404':
  *         description: "User not found"
- *     security:
- *        - JWT: []
- *        - {}
  */
 module.exports.users_request_password_recover = [
-  passport.authenticate(['jwt'], { session: false }),
   async function (req, res) {
     const { email } = req.body;
 
@@ -278,34 +140,26 @@ module.exports.users_request_password_recover = [
     // Generating a recovery token
     const token = await Token.findOne({
       where: {
-        user_id: user.id,
+        userId: user.id,
       },
     });
 
     let resetToken = crypto.randomBytes(32).toString('hex');
 
     if (token) {
-      await Token.update(
-        {
-          token: resetToken,
-          createdAt: moment(),
-        },
-        {
-          where: {
-            user_id: user.id,
-          },
-        }
-      );
+      token.token = resetToken;
+      token.createdAt = moment().format('YYYY-MM-DD HH:mm:ss');
+      await token.save();
     } else {
       await Token.create({
-        user_id: user.id,
+        userId: user.id,
         token: resetToken,
         expiration: 60 * 60,
       });
     }
 
     // Send a link to the user to recover his password
-    const link = `${frontURL}/passwordReset?token=${resetToken}&user_id=${user.id}`;
+    const link = `${frontendUrl}/reset_password?token=${resetToken}`;
 
     await sendMail(
       '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
@@ -326,12 +180,12 @@ module.exports.users_request_password_recover = [
 
 /**
  * @openapi
- * /users/update-password:
+ * /users/update-password-token:
  *   post:
  *     summary: Updates user password.
  *     tags:
- *       - "Users"
- *     operationId: users_update_password
+ *       - "User"
+ *     operationId: users_update_password_token
  *     x-eov-operation-handler: user-handler
  *
  *     requestBody:
@@ -342,17 +196,13 @@ module.exports.users_request_password_recover = [
  *             type: object
  *             required:
  *               - token
- *               - userId
  *               - newPassword
  *               - newPasswordConfirmation
  *
  *             properties:
  *               token:
  *                 type: string
- *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
- *               userId:
- *                 type: string
- *                 example: "93637cc7-8aa2-4ff4-bd56-cc05762eb55b"
+ *                 example: "93637cc78aa24ff4bd56cc05762eb55b"
  *               newPassword:
  *                 type: string
  *                 example: "Josezinho@123"
@@ -363,40 +213,28 @@ module.exports.users_request_password_recover = [
  *       '200':
  *         description: "Password updated"
  *       '400':
- *         description: "Invalid token"
+ *         description: "Password and confirmation must be equal"
  *       '404':
- *         description: "User not found"
+ *         description: "Token not found"
  */
-module.exports.users_update_password = [
+module.exports.users_update_password_token = [
   async function (req, res) {
-    const {
-      token: userToken,
-      userId,
-      newPassword,
-      newPasswordConfirmation,
-    } = req.body;
-
-    if (!(userToken || userId)) {
-      return res.status(400).send({
-        error: 'Invalid token',
-      });
-    }
-
-    if (newPassword != newPasswordConfirmation) {
-      return res
-        .status(400)
-        .send({ error: 'Password and confirmation must be equal' });
-    }
+    const { token: userToken, newPassword, newPasswordConfirmation } = req.body;
 
     const token = await Token.findOne({
       where: {
-        user_id: userId,
         token: userToken,
       },
     });
 
     if (!token) {
       return res.status(404).send({ error: 'Token not found' });
+    }
+
+    if (newPassword != newPasswordConfirmation) {
+      return res
+        .status(400)
+        .send({ error: 'Password and confirmation must be equal' });
     }
 
     const currentDateTime = moment();
@@ -414,20 +252,18 @@ module.exports.users_update_password = [
     const salt = await bcrypt.genSalt(encryptSalt);
     const newUserPassword = await bcrypt.hash(newPassword, salt);
 
-    await User.update(
-      {
-        password: newUserPassword,
-      },
-      {
-        where: {
-          id: userId,
-        },
-      }
-    );
-
     const user = await User.findOne({
       where: {
-        id: userId,
+        id: token.userId,
+      },
+    });
+
+    user.password = newUserPassword;
+    await user.save();
+
+    await Token.destroy({
+      where: {
+        userId: user.id,
       },
     });
 
@@ -442,14 +278,701 @@ module.exports.users_update_password = [
       `
     );
 
-    await Token.destroy({
+    return res.status(200).send({
+      message: 'Password updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-password-authenticated:
+ *   post:
+ *     summary: Updates user password when authenticated.
+ *     tags:
+ *       - "User"
+ *     operationId: users_update_password_authenticated
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Update user password when authenticated."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newPassword
+ *               - newPasswordConfirmation
+ *
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 example: "Josezinho@123"
+ *               newPasswordConfirmation:
+ *                 type: string
+ *                 example: "Josezinho@123"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Password updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid passwords"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_password_authenticated = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
       where: {
-        user_id: token.user_id,
+        id: userId,
       },
     });
 
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const { newPassword, newPasswordConfirmation } = req.body;
+
+    if (newPassword != newPasswordConfirmation) {
+      return res
+        .status(400)
+        .send({ error: 'Password and confirmation must be equal' });
+    }
+
+    const salt = await bcrypt.genSalt(encryptSalt);
+    const newUserPassword = await bcrypt.hash(newPassword, salt);
+
+    user.password = newUserPassword;
+    await user.save();
+
     return res.status(200).send({
       message: 'Password updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-personal-data:
+ *   post:
+ *     summary: Updates user's personal-data.
+ *     tags:
+ *       - "User"
+ *     operationId: users_update_personal_data
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's personal-data."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - phone
+ *               - address
+ *               - birthdate
+ *
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Joselito"
+ *               phone:
+ *                 type: string
+ *                 example: "(11) 99999-9999"
+ *               address:
+ *                 type: string
+ *                 example: "Rua dos Bobos, 0 - Bairro dos Bobos - SP"
+ *               birthdate:
+ *                 type: string
+ *                 example: "1990-01-01"
+ *
+ *     responses:
+ *       '200':
+ *         description: "User updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_personal_data = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    // Validate if birthdate is on format YYYY-MM-DD
+    const { birthdate } = req.body;
+
+    if (!moment(birthdate, 'YYYY-MM-DD', true).isValid()) {
+      return res.status(400).send({ error: 'Invalid birthdate' });
+    }
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.name = req.body.name;
+    user.phone = req.body.phone;
+    user.address = req.body.address;
+    user.birthdate = req.body.birthdate;
+    await user.save();
+
+    res.status(200).send({
+      message: 'User updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/user-personal-data:
+ *   get:
+ *     summary: Retrieves user's personal-data.
+ *     tags:
+ *       - "User"
+ *     operationId: users_personal_data
+ *     x-eov-operation-handler: user-handler
+ *
+ *     responses:
+ *       '200':
+ *         description: "User retrieved"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_personal_data = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    res.status(200).send({
+      user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        birthdate: user.birthdate,
+      },
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-blood-donation:
+ *   post:
+ *     summary: Updates user's blood information.
+ *     tags:
+ *       - "User"
+ *     operationId: users_update_blood_donation
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's blood information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - didDonate
+ *               - bloodType
+ *               - donationLocation
+ *
+ *             properties:
+ *               didDonate:
+ *                 type: boolean
+ *                 example: true
+ *               bloodType:
+ *                 type: string
+ *                 example: "A+"
+ *               donationLocation:
+ *                 type: string
+ *                 example: "Hemobanco"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Blood donation info updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_blood_donation = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const bloodDonation = await BloodDonation.create({
+      ...req.body,
+    });
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.bloodDonationId = bloodDonation.id;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Blood donation info updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/user-blood-donation:
+ *   get:
+ *     summary: Retrieves user's blood-donation.
+ *     tags:
+ *       - "User"
+ *     operationId: users_blood_donation
+ *     x-eov-operation-handler: user-handler
+ *
+ *     responses:
+ *       '200':
+ *         description: "User retrieved"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_blood_donation = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const bloodDonation = await BloodDonation.findOne({
+      where: {
+        id: user.bloodDonationId,
+      },
+    });
+
+    if (!bloodDonation) {
+      return res.status(404).send({ error: 'Blood donation not found' });
+    }
+
+    res.status(200).send({
+      bloodDonation: {
+        bloodType: bloodDonation.bloodType,
+        donationLocation: bloodDonation.donationLocation,
+        didDonate: bloodDonation.didDonate,
+      },
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-trusted-contact:
+ *   post:
+ *     summary: Updates user's trusted contact information.
+ *     tags:
+ *       - "User"
+ *     operationId: users_update_trusted_contact
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's trusted contact information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - phone
+ *               - birthdate
+ *               - address
+ *
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 example: "john@email.com"
+ *               phone:
+ *                 type: string
+ *                 example: "(41) 99999-9999"
+ *               birthdate:
+ *                 type: string
+ *                 example: "1990-01-01"
+ *               address:
+ *                 type: string
+ *                 example: "Rua dos bobos, 41 - Curitiba / PR"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Trusted contact info updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_trusted_contact = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const trustedContact = await TrustedContact.create({
+      ...req.body,
+    });
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.trustedContactId = trustedContact.id;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Trusted contact info updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/user-trusted-contact:
+ *   get:
+ *     summary: Retrieves user's trusted-contact.
+ *     tags:
+ *       - "User"
+ *     operationId: users_trusted_contact
+ *     x-eov-operation-handler: user-handler
+ *
+ *     responses:
+ *       '200':
+ *         description: "User retrieved"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_trusted_contact = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const trustedContact = await TrustedContact.findOne({
+      where: {
+        id: user.trustedContactId,
+      },
+    });
+
+    if (!trustedContact) {
+      return res.status(404).send({ error: 'Trusted contact not found' });
+    }
+
+    res.status(200).send({
+      trustedContact: {
+        name: trustedContact.name,
+        email: trustedContact.email,
+        phone: trustedContact.phone,
+        address: trustedContact.address,
+        birthdate: trustedContact.birthdate,
+      },
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-health-plan:
+ *   post:
+ *     summary: Updates user's health plan information.
+ *     tags:
+ *       - "User"
+ *     operationId: users_update_health_plan
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's health plan information."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - institution
+ *               - type
+ *               - accomodation
+ *
+ *             properties:
+ *               institution:
+ *                 type: string
+ *                 example: "Unimed"
+ *               type:
+ *                 type: string
+ *                 example: "Ouro"
+ *               accomodation:
+ *                 type: string
+ *                 example: "Enfermaria"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Health plan info updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_health_plan = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const healthPlan = await HealthPlan.create({
+      ...req.body,
+    });
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.healthPlanId = healthPlan.id;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Health plan info updated',
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/user-health-plan:
+ *   get:
+ *     summary: Retrieves user's health-plan.
+ *     tags:
+ *       - "User"
+ *     operationId: users_health_plan
+ *     x-eov-operation-handler: user-handler
+ *
+ *     responses:
+ *       '200':
+ *         description: "User retrieved"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_health_plan = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    const healthPlan = await HealthPlan.findOne({
+      where: {
+        id: user.healthPlanId,
+      },
+    });
+
+    if (!healthPlan) {
+      return res.status(404).send({ error: 'Health plan not found' });
+    }
+
+    res.status(200).send({
+      healthPlan: {
+        institution: healthPlan.institution,
+        type: healthPlan.type,
+        accomodation: healthPlan.accomodation,
+      },
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-preferrable-language:
+ *   post:
+ *     summary: Updates user's preferable language.
+ *     tags:
+ *       - "User"
+ *     operationId: users_update_preferrable_language
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's preferable language."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - language
+ *
+ *             properties:
+ *               language:
+ *                 type: string
+ *                 example: "EN-BR"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Preferrable language updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_preferrable_language = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.preferrableLanguage = req.body.language;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Preferrable language updated',
     });
   },
 ];

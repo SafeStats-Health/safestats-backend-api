@@ -10,9 +10,11 @@ const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const OpenApiValidator = require('express-openapi-validator');
 
+// JSON Web Token configuration
 const passport = require('passport');
 const jwt = require('./services/jwt/jwt');
 
+// Express configuration
 const app = express();
 
 app.use(passport.initialize());
@@ -59,11 +61,6 @@ app.use(
     operationHandlers: __dirname + '/routes',
   })
 );
-
-// Generic error handler
-app.use((erro, req, res) => {
-  res.status(500).send({ error: 'Ops, algo deu errado' });
-});
 
 // Starts the database
 (async () => {
