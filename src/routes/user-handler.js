@@ -950,7 +950,7 @@ module.exports.users_health_plan = [
  *               language:
  *                 type: string
  *                 enum: ["PT-BR", "EN-US"]
- *                 example: "pt-BR"
+ *                 example: "PT-BR"
  *
  *     responses:
  *       '200':
@@ -982,7 +982,7 @@ module.exports.users_update_preferrable_language = [
       return res.status(404).send({ error: 'User not found' });
     }
 
-    user.preferrableLanguage = req.body.language;
+    user.preferredLanguage = req.body.language;
     await user.save();
 
     res.status(200).send({

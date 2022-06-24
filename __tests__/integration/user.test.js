@@ -3,8 +3,9 @@ const request = require('supertest');
 const app = require('../../src/app');
 
 const { faker } = require('@faker-js/faker');
+const User = require('../../src/models/user');
 
-describe('User', () => {
+describe('User delete', () => {
   it('should delete a logged user using his token', async () => {
     const user = {
       name: faker.name.firstName(),
@@ -72,5 +73,75 @@ describe('User', () => {
     expect(response3.body.error).toBe(
       'Password and confirmation must be equal'
     );
+  });
+});
+
+describe('User recover password', () => {
+  it('should request a password recovery email', async () => {
+    const user = {
+      name: faker.name.firstName(),
+      email: faker.internet.email(),
+      password: '123456',
+      confirmPassword: '123456',
+    };
+
+    const response = await request(app).post('/api/users/register').send(user);
+
+    expect(response.status).toBe(201);
+    expect(response.body.message).toBe('User created');
+
+    const response2 = await request(app)
+      .post('/api/users/request-password-recover')
+      .send(user);
+
+    expect(response2.status).toBe(200);
+    expect(response2.body.message).toBe('Recovery link sent');
+  });
+});
+
+describe('User preferred language', () => {
+  it('should change the preferred language', async () => {
+    const user = {
+      name: faker.name.firstName(),
+      email: faker.internet.email(),
+      password: '123456',
+      confirmPassword: '123456',
+    };
+
+    const response = await request(app).post('/api/users/register').send(user);
+
+    expect(response.status).toBe(201);
+    expect(response.body.message).toBe('User created');
+
+    const response2 = await request(app).post('/api/users/login').send(user);
+
+    expect(response2.status).toBe(200);
+
+    const token = response2.body.token;
+
+    var oldLanguage = await User.findOne({
+      where: { email: user.email },
+    });
+    oldLanguage = oldLanguage.preferredLanguage;
+
+    const response3 = await request(app)
+      .post('/api/users/update-preferrable-language')
+      .set({
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      })
+      .send({
+        language: 'EN-US',
+      });
+
+    expect(response3.status).toBe(200);
+    expect(response3.body.message).toBe('Preferrable language updated');
+
+    var newLanguage = await User.findOne({
+      where: { email: user.email },
+    });
+
+    expect(newLanguage.preferredLanguage).toBe('EN-US');
+    expect(newLanguage.preferredLanguage).not.toBe(oldLanguage);
   });
 });

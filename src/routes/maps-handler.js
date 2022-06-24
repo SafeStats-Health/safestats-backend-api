@@ -100,8 +100,8 @@ module.exports.maps_nearby_hospitals = [
           lng: result.geometry.location.lng,
         },
         beds: {
-          totalBeds: Math.floor(Math.random() * 500),
-          availableBeds: Math.floor(Math.random() * 500),
+          totalBeds: Math.floor(Math.random() * 500) + 200,
+          availableBeds: Math.floor(Math.random() * 200),
         },
         specialties: [
           {
