@@ -54,7 +54,7 @@ module.exports.maps_nearby_hospitals = [
     }
 
     const { lat, lng } = req.body;
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?type=hospital|upa&location=${lat},${lng}&radius=50000&key=${key}`;
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=hospital%20upa&location=${lat},${lng}&radius=50000&key=${key}`;
     const response = await axios.get(url);
     await delay(1500);
 
