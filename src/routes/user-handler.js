@@ -949,7 +949,7 @@ module.exports.users_health_plan = [
  *             properties:
  *               language:
  *                 type: string
- *                 enum: ["pt-BR", "en-US"]
+ *                 enum: ["PT-BR", "EN-US"]
  *                 example: "pt-BR"
  *
  *     responses:
