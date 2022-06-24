@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon --exec sucrase-node ./src/bin/www --ignore __tests__",
-    "test": "NODE_ENV=TEST jest --coverage"
+    "test": "cross-env NODE_ENV=test jest --testTimeout=10000 --detectOpenHandles"
   },
   "repository": {
     "type": "git",
@@ -51,6 +51,7 @@
     "@faker-js/faker": "^6.2.0",
     "@typescript-eslint/eslint-plugin": "^5.20.0",
     "@typescript-eslint/parser": "^5.20.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.13.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.0.0",
