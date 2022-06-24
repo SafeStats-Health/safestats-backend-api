@@ -49,20 +49,29 @@ const { GOOGLE_API_KEY: key } = process.env;
 module.exports.maps_nearby_hospitals = [
   passport.authenticate('jwt', { session: false }),
   async function (req, res) {
+    function delay(time) {
+      return new Promise((resolve) => setTimeout(resolve, time));
+    }
+
     const { lat, lng } = req.body;
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=hospital+upa&location=${lat},${lng}&radius=50000&key=${key}`;
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?type=hospital|upa&location=${lat},${lng}&radius=50000&key=${key}`;
     const response = await axios.get(url);
+    await delay(1500);
 
     var nextPageToken = response.data.next_page_token;
 
     while (nextPageToken) {
       const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${nextPageToken}&key=${key}`;
       const newResponse = await axios.get(url);
-      nextPageToken = newResponse.data.next_page_token;
+      await delay(1500);
+      nextPageToken = await newResponse.data.next_page_token;
+
       response.data.results = response.data.results.concat(
         newResponse.data.results
       );
     }
+
+    console.log(response.data.results.length);
 
     delete response.data.next_page_token;
     delete response.data.html_attributions;
