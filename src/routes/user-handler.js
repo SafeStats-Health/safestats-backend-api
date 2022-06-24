@@ -14,7 +14,7 @@ const HealthPlan = require('../models/healthPlan');
 const sendMail = require('../services/email/email');
 
 const encryptSalt = parseInt(process.env.ENCRYPT_SALT);
-const { FRONTEND_URL: frontURL, CRYPTO_KEY: secret } = process.env;
+const { FRONTEND_URL: frontendUrl, CRYPTO_KEY: secret } = process.env;
 
 /**
  * @openapi
@@ -159,7 +159,7 @@ module.exports.users_request_password_recover = [
     }
 
     // Send a link to the user to recover his password
-    const link = `${frontURL}/reset_password?token=${resetToken}`;
+    const link = `${frontendUrl}/reset_password?token=${resetToken}`;
 
     await sendMail(
       '"Equipe SafeStats 🏥" <help.safestats@gmail.com>',
@@ -910,6 +910,69 @@ module.exports.users_health_plan = [
         type: healthPlan.type,
         accomodation: healthPlan.accomodation,
       },
+    });
+  },
+];
+
+/**
+ * @openapi
+ * /users/update-preferrable-language:
+ *   post:
+ *     summary: Updates user's preferable language.
+ *     tags:
+ *       - "User"
+ *     operationId: users_update_preferrable_language
+ *     x-eov-operation-handler: user-handler
+ *
+ *     requestBody:
+ *       description: "Updates user's preferable language."
+ *       content:
+ *         "application/json":
+ *           schema:
+ *             type: object
+ *             required:
+ *               - language
+ *
+ *             properties:
+ *               language:
+ *                 type: string
+ *                 example: "EN-BR"
+ *
+ *     responses:
+ *       '200':
+ *         description: "Preferrable language updated"
+ *       '401':
+ *         description: "Unauthorized"
+ *       '400':
+ *         description: "Invalid data"
+ *       '404':
+ *         description: "User not found"
+ *     security:
+ *        - JWT: []
+ *        - {}
+ */
+module.exports.users_update_preferrable_language = [
+  passport.authenticate(['jwt'], { session: false }),
+  async function (req, res) {
+    const { authorization } = req.headers;
+    const decodedToken = jwt.decode(authorization.split(' ')[1], secret);
+    const userId = decodedToken['user'].id;
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).send({ error: 'User not found' });
+    }
+
+    user.preferrableLanguage = req.body.language;
+    await user.save();
+
+    res.status(200).send({
+      message: 'Preferrable language updated',
     });
   },
 ];
