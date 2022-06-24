@@ -1,15 +1,17 @@
-require('dotenv').config({
-  path: process.env.NODE_ENV === 'TEST' ? '.env.test' : '.env',
-});
+require('dotenv').config({ path: '.env' });
 
 const Sequelize = require('sequelize');
 const databaseCredentials = require('./databaseCredentials');
 
 // Getting environment variables
-const { ENVIRONMENT: environment, DATABASE_URL: databaseUrl } = process.env;
+var { ENVIRONMENT: environment, DATABASE_URL: databaseUrl } = process.env;
 
 var database = {},
   sequelize;
+
+if (process.env.NODE_ENV === 'TEST') {
+  environment = 'test';
+}
 
 if (environment != 'PRODUCTION') {
   // Creating a new Sequelize instance for non production environment
@@ -22,7 +24,7 @@ if (environment != 'PRODUCTION') {
       port: databaseCredentials[environment]['port'],
       dialect: databaseCredentials[environment]['dialect'],
       storage: databaseCredentials[environment]['storage'] || ':memory:',
-      loggin: databaseCredentials[environment]['logging'],
+      logging: databaseCredentials[environment]['logging'],
     }
   );
 } else {
