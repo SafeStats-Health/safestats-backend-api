@@ -301,10 +301,14 @@ module.exports.users_update_password_token = [
  *           schema:
  *             type: object
  *             required:
+ *               - oldPassword
  *               - newPassword
  *               - newPasswordConfirmation
  *
  *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 example: "Josezinho@321"
  *               newPassword:
  *                 type: string
  *                 example: "Josezinho@123"
@@ -348,6 +352,15 @@ module.exports.users_update_password_authenticated = [
       return res
         .status(400)
         .send({ error: 'Password and confirmation must be equal' });
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      req.body.oldPassword,
+      user.password
+    );
+
+    if (!isPasswordCorrect) {
+      return res.status(400).send({ error: 'Invalid password' });
     }
 
     const salt = await bcrypt.genSalt(encryptSalt);
@@ -936,7 +949,8 @@ module.exports.users_health_plan = [
  *             properties:
  *               language:
  *                 type: string
- *                 example: "EN-BR"
+ *                 enum: ["PT-BR", "EN-US"]
+ *                 example: "PT-BR"
  *
  *     responses:
  *       '200':
@@ -968,7 +982,7 @@ module.exports.users_update_preferrable_language = [
       return res.status(404).send({ error: 'User not found' });
     }
 
-    user.preferrableLanguage = req.body.language;
+    user.preferredLanguage = req.body.language;
     await user.save();
 
     res.status(200).send({

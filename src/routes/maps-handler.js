@@ -50,7 +50,7 @@ module.exports.maps_nearby_hospitals = [
   passport.authenticate('jwt', { session: false }),
   async function (req, res) {
     const { lat, lng } = req.body;
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=hospital+health&location=${lat},${lng}&radius=50000&key=${key}`;
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=hospital+upa&location=${lat},${lng}&radius=50000&key=${key}`;
     const response = await axios.get(url);
 
     var nextPageToken = response.data.next_page_token;
@@ -100,8 +100,8 @@ module.exports.maps_nearby_hospitals = [
           lng: result.geometry.location.lng,
         },
         beds: {
-          totalBeds: Math.floor(Math.random() * 500),
-          availableBeds: Math.floor(Math.random() * 500),
+          totalBeds: Math.floor(Math.random() * 500) + 200,
+          availableBeds: Math.floor(Math.random() * 200),
         },
         specialties: [
           {
